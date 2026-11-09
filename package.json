@@ -50,6 +50,7 @@
     "dev": "vite",
     "dev:hq": "concurrently -k -n hq,ui -c magenta,cyan \"tsx watch server/main.ts --dev\" \"vite\"",
     "hq": "vite build --logLevel warn && tsx server/main.ts",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit -p . && tsc --noEmit -p server",
     "build": "tsc --noEmit -p . && tsc --noEmit -p server && vite build && node scripts/build-server.mjs",
     "preview": "vite preview",
@@ -87,6 +88,7 @@
     "tsx": "^4.23.15",
     "typescript": "~5.8.3",
     "vite": "^6.4.4",
+    "vitest": "^5.1.0",
     "zustand": "^5.0.15"
   }
 }
