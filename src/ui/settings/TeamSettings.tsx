@@ -3,7 +3,7 @@ import { nextAgentName } from "../../data/names";
 import { CLI_LABEL, DEFAULT_LOCAL_SERVER_URL, DEFAULT_OLLAMA_URL, LOCAL_SERVER_LABEL, supportsLocalServer, projectRoomsOf, roomWorkerKey, supportsOllama, WORKER_KIND_LABEL, type AgentCli, type AgentConfig, type AgentMode, type ModelProvider, type ProjectRoomConfig, type ProjectWorkerKind, type RoomWorkerStatus } from "../../data/types";
 import { officeActions, useOffice } from "../../store/office";
 import { agentPalette } from "../../theme/tokens";
-import { Field, Portrait, SectionTitle } from "../kit";
+import { Field, GroupBox, Portrait } from "../kit";
 import { CommitInput } from "./controls";
 import { RemoveAgentDialog } from "./RemoveAgentDialog";
 
@@ -27,8 +27,7 @@ export function TeamSettings() {
   if (!team) return null;
   return (
     <div className="flex flex-col gap-5">
-      <section>
-        <SectionTitle>Team · {team.length} agents</SectionTitle>
+      <GroupBox title={`Team · ${team.length} agents`}>
         <p className="mb-3 text-[14px] text-muted">
           Changes to model, mode or folder apply the next time the agent starts. One lead plans and assigns work. Every other agent gets its own desk, sandbox and (optionally) environment. The office grows as you add agents.
         </p>
@@ -37,7 +36,7 @@ export function TeamSettings() {
             <AgentRow key={a.id} agent={a} expanded={open === a.id} onToggle={() => setOpen(open === a.id ? null : a.id)} onRemove={() => setRemoving(a)} />
           ))}
         </div>
-      </section>
+      </GroupBox>
       <AddAgent />
       <ProjectRoomSettings />
       {removing && <RemoveAgentDialog agent={removing} onClose={() => setRemoving(null)} />}
@@ -52,7 +51,7 @@ function AgentRow({ agent, expanded, onToggle, onRemove }: { agent: AgentConfig;
   const onLocal = agent.provider === "local" && supportsLocalServer(agent.cli);
   const localUrl = useOffice((s) => s.snap?.config.project.localServerUrl);
   return (
-    <div className="rounded-xl border border-line bg-white">
+    <div className="rounded-[4px] border border-ink bg-white">
       <div className="grid grid-cols-[40px_1fr_1fr_150px_130px_auto] items-end gap-3 p-3">
         <Portrait color={agent.color} lead={agent.isLead} />
         <Field label="Name">
@@ -89,18 +88,18 @@ function AgentRow({ agent, expanded, onToggle, onRemove }: { agent: AgentConfig;
         </div>
       </div>
       {agent.mode === "local" && (
-        <div className="border-t-2 border-dashed border-cream-3 px-3 py-1 text-[12px] text-muted">
+        <div className="border-t border-ink px-3 py-1 text-[12px] text-muted">
           Local mode runs plain <code>{agent.cli}</code> in the agent's own folder. Permission prompts stay on.
         </div>
       )}
       {expanded && (
-        <div className="grid grid-cols-2 gap-3 border-t border-line bg-cream p-3">
+        <div className="grid grid-cols-2 gap-3 border-t border-ink bg-cream p-3">
           <Field label="Colour">
             <div className="flex flex-wrap gap-1.5">
               {agentPalette.map((c) => (
                 <button
                   key={c}
-                  className="h-6 w-6 rounded-full border border-line"
+                  className="h-6 w-6 rounded-full border border-ink"
                   style={{ background: c, outline: c === agent.color ? "2px solid #1f2421" : undefined, outlineOffset: 1 }}
                   aria-label={`Colour ${c}`}
                   onClick={() => set({ color: c })}
@@ -197,8 +196,7 @@ function ProjectRoomSettings() {
   const scoped = rooms.length > 1;
   const [name, setName] = useState("");
   return (
-    <section className="rounded-xl border border-dashed border-line p-3">
-      <SectionTitle>Project rooms</SectionTitle>
+    <GroupBox title="Project rooms">
       <p className="mb-3 text-[13px] text-muted">
         Each project gets its own pavilion on the campus for its own workers: a script that fetches emails, a local model that writes them, a bot that sends them. They aren't coding agents. A project reports what they do through a local API (see Connect a project below); until then its pavilion plays a demo animation.
       </p>
@@ -230,7 +228,7 @@ function ProjectRoomSettings() {
         </p>
       )}
       <Connect api={api} rooms={rooms} scoped={scoped} />
-    </section>
+    </GroupBox>
   );
 }
 
@@ -248,7 +246,7 @@ function RoomCard({ room, scoped, statuses }: { room: RoomView; scoped: boolean;
   };
   const reporting = workers.some((w) => statuses?.[roomWorkerKey(room.id, w.id, scoped)]);
   return (
-    <div className="rounded-xl border border-line bg-white p-3" role="group" aria-label={`Project room ${room.name}`}>
+    <div className="rounded-[4px] border border-ink bg-white p-3" role="group" aria-label={`Project room ${room.name}`}>
       <div className="mb-2 flex flex-wrap items-end gap-3">
         <div className="min-w-[220px] max-w-[360px] flex-1">
           <Field label="Room name">
@@ -273,8 +271,8 @@ function RoomCard({ room, scoped, statuses }: { room: RoomView; scoped: boolean;
           {workers.map((w, i) => {
             const st = liveStatus(statuses?.[roomWorkerKey(room.id, w.id, scoped)]);
             return (
-              <div key={`${w.id}-${i}`} className="grid grid-cols-[28px_1fr_200px_minmax(0,1.1fr)_auto] items-center gap-3 rounded-[4px] border border-line bg-cream p-2">
-                <span className="h-5 w-5 rounded-full border border-line" style={{ background: w.color }} aria-hidden />
+              <div key={`${w.id}-${i}`} className="grid grid-cols-[28px_1fr_200px_minmax(0,1.1fr)_auto] items-center gap-3 rounded-[4px] border border-ink bg-cream p-2">
+                <span className="h-5 w-5 rounded-full border border-ink" style={{ background: w.color }} aria-hidden />
                 <CommitInput className="field" value={w.name} aria-label="Worker name" onCommit={(v) => v.trim() && change(i, { name: v.trim() })} />
                 <select className="field" value={w.kind} aria-label="What it does" onChange={(e) => change(i, { kind: e.target.value as ProjectWorkerKind })}>
                   {(Object.keys(WORKER_KIND_LABEL) as ProjectWorkerKind[]).map((k) => (
@@ -334,7 +332,7 @@ function Connect({ api, rooms, scoped }: { api: { url: string; token: string } |
   const room = rooms.find((r) => r.id === pick) ?? rooms[0];
   const vars = (token: string) => `export HQ_ROOM_URL=${api?.url}\nexport HQ_ROOM_TOKEN=${token}${scoped && room ? `\nexport HQ_ROOM_ID=${room.id}` : ""}`;
   return (
-    <div className="mt-3 rounded-xl border border-line bg-cream p-3">
+    <div className="mt-3 rounded-[4px] border border-ink bg-cream p-3">
       <div className="mb-1 text-[13px] font-bold">Connect a project</div>
       <p className="mb-2 text-[12px] text-muted">
         Any project can create its room and show what its workers do, through a small local HTTP API. Set these variables in the project, then use the Python or Node helper in <code>sdk/</code> (see <code>docs/project-rooms.md</code>).
@@ -355,7 +353,7 @@ function Connect({ api, rooms, scoped }: { api: { url: string; token: string } |
               </Field>
             </div>
           )}
-          <pre className="mb-2 overflow-x-auto whitespace-pre-wrap break-all rounded-[4px] border border-line bg-white p-2 font-term text-[13px]">{vars(shown ? api.token : "•".repeat(16))}</pre>
+          <pre className="mb-2 overflow-x-auto whitespace-pre-wrap break-all rounded-[4px] border border-ink bg-white p-2 font-term text-[13px]">{vars(shown ? api.token : "•".repeat(16))}</pre>
           <div className="flex gap-2">
             <button className="btn px-2 text-[13px]" onClick={() => setShown(!shown)}>
               {shown ? "Hide token" : "Show token"}
@@ -385,8 +383,7 @@ function AddAgent() {
     setName("");
   };
   return (
-    <section className="rounded-xl border border-dashed border-line p-3">
-      <SectionTitle>Add an agent</SectionTitle>
+    <GroupBox title="Add an agent">
       <form
         className="grid grid-cols-[1fr_1fr_150px_130px_auto] items-end gap-3"
         onSubmit={(e) => {
@@ -442,6 +439,6 @@ function AddAgent() {
           <option key={r} value={r} />
         ))}
       </datalist>
-    </section>
+    </GroupBox>
   );
 }

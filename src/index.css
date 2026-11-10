@@ -312,6 +312,60 @@ html[data-font] .font-term {
       inset 0 0 0 3px #000,
       var(--shadow-window);
   }
+  /* Modal backdrop: dims the whole page, menu bar included. */
+  .backdrop {
+    background: rgba(0, 0, 0, 0.35);
+  }
+  /* Group box: 1px ink rule with the title breaking the top line. */
+  .group {
+    margin: 0;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #000;
+    border-radius: var(--radius-window);
+    background: var(--color-paper);
+  }
+  .group > legend {
+    padding: 0 6px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  /* Settings navigation: plain rows, inverted when selected. */
+  .nav-row {
+    display: block;
+    width: 100%;
+    cursor: pointer;
+    padding: 4px 12px;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #000;
+  }
+  .nav-row:hover {
+    background: var(--color-platinum-2);
+  }
+  .nav-row[aria-pressed="true"] {
+    background: #000;
+    color: #fff;
+  }
+  .nav-row:focus-visible {
+    outline: 2px solid var(--color-select);
+    outline-offset: -2px;
+  }
+  /* Dropdown under a menu-bar title. */
+  .menu-pop {
+    position: absolute;
+    right: 0;
+    top: 28px;
+    z-index: 20;
+    min-width: 240px;
+    padding: 12px;
+    background: #fff;
+    border: 1px solid #000;
+    box-shadow: var(--shadow-window);
+  }
   /* Textures */
   .dither {
     background: var(--dither);

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import type { SimSpeed } from "../../data/source";
 import { officeActions, selectAttention, useOffice } from "../../store/office";
 import { ui, useUi } from "../../store/ui";
@@ -28,6 +29,19 @@ export function TopBar() {
   const attention = selectAttention(snap).total;
   const debugOpen = useUi((s) => s.debugOpen);
   const live = useOffice((s) => s.live);
+  const [viewOpen, setViewOpen] = useState(false);
+  const viewRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!viewOpen) return;
+    const away = (e: MouseEvent) => viewRef.current && !viewRef.current.contains(e.target as Node) && setViewOpen(false);
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setViewOpen(false);
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", away);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [viewOpen]);
   if (!snap) return null;
   const setupIssues = snap.setup.checks.filter((c) => c.status !== "ok").length;
   const stopped = snap.agents.filter((a) => a.session.state === "stopped" || a.session.state === "failed");
@@ -56,42 +70,6 @@ export function TopBar() {
         </span>
       </div>
       <div className="flex-1" />
-
-      <label className="flex items-center gap-2 text-[13px]">
-        <span className="text-muted">Plan wall</span>
-        <select
-          className="field !h-[22px] w-[170px] py-0 text-[12px]"
-          value={planBoardId ?? ""}
-          onChange={(e) => ui.showBoardOnWall(e.target.value || null)}
-          aria-label="Board shown on the plan wall"
-        >
-          <option value="">First active ({active[0]?.title ?? "none"})</option>
-          {boards.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.title} · {b.status}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {hasDev && (
-        <div className="flex items-center gap-1.5" role="group" aria-label="Simulation speed">
-          {SPEEDS.map((s) => (
-            <button key={s} className="btn !px-2 !py-0 text-[12px]" aria-pressed={speed === s} onClick={() => officeActions.setSpeed(s)}>
-              {s}x
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="flex gap-1.5">
-        <button className="btn !w-6 !px-0 !py-0 text-[16px] leading-none" aria-label="Zoom out" onClick={() => ui.zoom(-1)}>
-          −
-        </button>
-        <button className="btn !w-6 !px-0 !py-0 text-[16px] leading-none" aria-label="Zoom in" onClick={() => ui.zoom(1)}>
-          +
-        </button>
-      </div>
 
       <div
         className="flex items-center gap-2 whitespace-nowrap border border-ink bg-cream-2 px-2 py-0 text-[12px] text-ink"
@@ -135,9 +113,52 @@ export function TopBar() {
       <button className="menu-item" onClick={() => ui.openSettings("team")}>
         Settings
       </button>
-      <button className="menu-item" aria-pressed={debugOpen} onClick={() => ui.toggleDebug()} title="Debug panel (D)">
-        Debug
-      </button>
+      <div className="relative" ref={viewRef}>
+        <button className="menu-item" aria-haspopup="menu" aria-expanded={viewOpen} aria-pressed={viewOpen} onClick={() => setViewOpen((v) => !v)}>
+          View ▾
+        </button>
+        {viewOpen && (
+          <div className="menu-pop flex flex-col gap-3 text-[13px]" role="menu" aria-label="View">
+            <label className="flex flex-col gap-1">
+              <span className="font-semibold">Plan wall</span>
+              <select className="field !h-[28px] py-0 text-[13px]" value={planBoardId ?? ""} onChange={(e) => ui.showBoardOnWall(e.target.value || null)} aria-label="Board shown on the plan wall">
+                <option value="">First active ({active[0]?.title ?? "none"})</option>
+                {boards.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.title} · {b.status}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold">Zoom</span>
+              <span className="flex gap-1.5">
+                <button className="btn !w-8 !px-0 text-[16px] leading-none" aria-label="Zoom out" onClick={() => ui.zoom(-1)}>
+                  −
+                </button>
+                <button className="btn !w-8 !px-0 text-[16px] leading-none" aria-label="Zoom in" onClick={() => ui.zoom(1)}>
+                  +
+                </button>
+              </span>
+            </div>
+            {hasDev && (
+              <div className="flex items-center justify-between gap-2" role="group" aria-label="Simulation speed">
+                <span className="font-semibold">Speed</span>
+                <span className="flex gap-1.5">
+                  {SPEEDS.map((sp) => (
+                    <button key={sp} className="btn !px-2" aria-pressed={speed === sp} onClick={() => officeActions.setSpeed(sp)}>
+                      {sp}x
+                    </button>
+                  ))}
+                </span>
+              </div>
+            )}
+            <button className="btn" aria-pressed={debugOpen} onClick={() => ui.toggleDebug()} title="Debug panel (D)">
+              Debug panel
+            </button>
+          </div>
+        )}
+      </div>
     </header>
   );
 }

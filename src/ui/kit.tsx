@@ -66,6 +66,16 @@ export function SectionTitle({ children }: { children: ReactNode }) {
   return <h3 className="mb-2 border-b border-ink pb-1 text-[12px] font-bold uppercase tracking-[0.08em] text-ink-2">{children}</h3>;
 }
 
+/** Classic group box: a fieldset whose legend breaks the 1px top rule. */
+export function GroupBox({ title, children, className = "" }: { title: ReactNode; children: ReactNode; className?: string }) {
+  return (
+    <fieldset className={`group ${className}`}>
+      <legend>{title}</legend>
+      {children}
+    </fieldset>
+  );
+}
+
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="flex flex-col gap-1">
