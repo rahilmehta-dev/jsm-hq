@@ -17,7 +17,7 @@ export function WorkflowSettings() {
   const live = useOffice((s) => s.live);
   if (!wf) return null;
   const stage = (name: string, on: boolean, detail: string) => (
-    <span className={`border-[3px] border-ink px-2 py-0.5 ${on ? "bg-white" : "bg-cream-2 text-muted line-through"}`}>
+    <span className={`border border-ink px-2 py-1 ${on ? "bg-white" : "bg-platinum text-ink-2 line-through"}`}>
       <b>{name}</b> <span className="text-[12px]">{detail}</span>
     </span>
   );
@@ -34,17 +34,17 @@ export function WorkflowSettings() {
           {stage("Merge", true, wf.merge.by === "lead" ? "by the lead" : "by you")}
           <span>→</span>
           {live ? (
-            <span className="border-[3px] border-dashed border-ink bg-cream-2 px-2 py-0.5 text-muted">
+            <span className="border border-ink bg-platinum px-2 py-1 text-ink-2">
               <b>Deploy</b> <span className="text-[12px]">coming soon</span>
             </span>
           ) : (
             stage("Deploy", wf.deploy.enabled, deployToolLabel[wf.deploy.tool])
           )}
         </div>
-        <p className="mt-2 text-[13px] text-muted">One task = one branch = one PR. HQ only reads results from these tools; it never merges or deploys itself.</p>
+        <p className="mt-2 text-[13px] text-ink-2">One task = one branch = one PR. HQ only reads results from these tools; it never merges or deploys itself.</p>
       </section>
 
-      <section className="border-[3px] border-ink bg-white p-3">
+      <section className="border border-ink bg-white p-3">
         <div className="mb-3 flex items-center justify-between">
           <SectionTitle>Review</SectionTitle>
           <Toggle checked={wf.review.enabled} onChange={(v) => officeActions.updateWorkflow({ review: { enabled: v } })} label={wf.review.enabled ? "On" : "Off"} />
@@ -70,10 +70,10 @@ export function WorkflowSettings() {
             </Field>
           )}
         </div>
-        <p className="mt-2 text-[12px] text-muted">When a review finishes with comments, HQ tells the PR's author to fix them.</p>
+        <p className="mt-2 text-[12px] text-ink-2">When a review finishes with comments, HQ tells the PR's author to fix them.</p>
       </section>
 
-      <section className="border-[3px] border-ink bg-white p-3">
+      <section className="border border-ink bg-white p-3">
         <SectionTitle>Merge</SectionTitle>
         <div className="flex gap-2" role="radiogroup" aria-label="Who merges">
           {(["human", "lead"] as const).map((by) => (
@@ -82,22 +82,22 @@ export function WorkflowSettings() {
             </button>
           ))}
         </div>
-        <p className="mt-2 text-[12px] text-muted">The lead always sets the merge order and handles conflicts between PRs.</p>
+        <p className="mt-2 text-[12px] text-ink-2">The lead always sets the merge order and handles conflicts between PRs.</p>
       </section>
 
       {live ? (
-        <section className="border-[3px] border-dashed border-ink bg-cream-2 p-3">
+        <section className="border border-ink bg-platinum p-3">
           <div className="mb-1 flex items-center justify-between">
             <SectionTitle>Deploy</SectionTitle>
             <span className="chip text-[12px]">Coming soon</span>
           </div>
-          <p className="m-0 text-[13px] text-muted">
+          <p className="m-0 text-[13px] text-ink-2">
             Preview deployments per PR (Vercel, InstaCloud) and one environment per agent, shown in the office's server room. Not available yet; agents can
             still deploy with their own tools.
           </p>
         </section>
       ) : (
-      <section className="border-[3px] border-ink bg-white p-3">
+      <section className="border border-ink bg-white p-3">
         <div className="mb-3 flex items-center justify-between">
           <SectionTitle>Deploy</SectionTitle>
           <Toggle checked={wf.deploy.enabled} onChange={(v) => officeActions.updateWorkflow({ deploy: { enabled: v } })} label={wf.deploy.enabled ? "On" : "Off"} />
@@ -130,7 +130,7 @@ export function WorkflowSettings() {
             />
           </div>
         </div>
-        <p className="mt-2 text-[12px] text-muted">The server room shows one rack per environment. Turn deploy off to hide it.</p>
+        <p className="mt-2 text-[12px] text-ink-2">The server room shows one rack per environment. Turn deploy off to hide it.</p>
       </section>
       )}
     </div>

@@ -8,7 +8,7 @@ import { CommitInput, Toggle } from "./controls";
 function FontPicker() {
   const [font, setCurrent] = useState(savedFont);
   return (
-    <section className="border-[3px] border-ink bg-white p-3">
+    <section className="border border-ink bg-white p-3">
       <SectionTitle>Font</SectionTitle>
       <Field label="Font style" hint="For panels, drawers, settings and agent terminals. The office stays pixel. Saved in this browser only.">
         <select
@@ -37,7 +37,7 @@ export function ProjectSettings() {
   return (
     <div className="flex flex-col gap-5">
       <FontPicker />
-      <section className="grid grid-cols-2 gap-3 border-[3px] border-ink bg-white p-3">
+      <section className="grid grid-cols-2 gap-3 border border-ink bg-white p-3">
         <div className="col-span-2">
           <SectionTitle>Project</SectionTitle>
         </div>
@@ -73,11 +73,11 @@ export function ProjectSettings() {
       <section>
         <SectionTitle>Plan</SectionTitle>
         <Toggle checked={!!project.exportPlan} onChange={(v) => officeActions.updateProject({ exportPlan: v })} label="Export plan to docs/plan.md" />
-        <p className="mt-1 text-[13px] text-muted">
+        <p className="mt-1 text-[13px] text-ink-2">
           HQ keeps the plan in .jsmhq/plan.json. With this on, it also writes a readable copy to docs/plan.md every time the plan changes, so you can commit it or read it on GitHub. Edits to that file are overwritten.
         </p>
       </section>
-      <section className="text-[13px] text-muted">
+      <section className="text-[13px] text-ink-2">
         <SectionTitle>Security</SectionTitle>
         <ul className="list-disc pl-5">
           <li>HQ binds 127.0.0.1 only.</li>

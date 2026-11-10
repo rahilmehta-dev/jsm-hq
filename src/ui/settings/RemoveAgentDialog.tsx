@@ -32,7 +32,7 @@ export function RemoveAgentDialog({ agent, onClose }: { agent: AgentConfig; onCl
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4" role="dialog" aria-modal="true" aria-label={`Remove ${agent.name}`}>
       <div className="alert w-[min(560px,100%)] bg-paper p-4">
         <h3 className="mb-1 text-[17px] font-bold">Remove {agent.name} from the team?</h3>
-        <p className="mb-3 text-[13px] text-muted">Their session stops, and their unfinished tasks go back to the board.</p>
+        <p className="mb-3 text-[13px] text-ink-2">Their session stops, and their unfinished tasks go back to the board.</p>
 
         {loading && (
           <div className="mb-3">
@@ -46,8 +46,8 @@ export function RemoveAgentDialog({ agent, onClose }: { agent: AgentConfig; onCl
               <input type="checkbox" className="mt-1" checked={deleteSandbox && info.sandboxExists} disabled={!info.sandboxExists} onChange={(e) => setDeleteSandbox(e.target.checked)} />
               <span className="min-w-0">
                 <b className="text-[15px]">Delete {agent.name}'s sandbox (the VM)</b>
-                <span className="block font-term text-[16px] text-muted">{info.sandboxExists ? `sbx rm ${info.sandboxName}` : "No sandbox exists"}</span>
-                <span className="block text-[12px] text-muted">Safe: the code lives in the folder, not the VM. Anything installed inside the VM is lost.</span>
+                <span className="block font-term text-[16px] text-ink-2">{info.sandboxExists ? `sbx rm ${info.sandboxName}` : "No sandbox exists"}</span>
+                <span className="block text-[12px] text-ink-2">Safe: the code lives in the folder, not the VM. Anything installed inside the VM is lost.</span>
               </span>
             </label>
 
@@ -55,11 +55,11 @@ export function RemoveAgentDialog({ agent, onClose }: { agent: AgentConfig; onCl
               <input type="checkbox" className="mt-1" checked={deleteFolder} disabled={!info.managed || !info.exists} onChange={(e) => setDeleteFolder(e.target.checked)} />
               <span className="min-w-0">
                 <b className="text-[15px]">Delete {agent.name}'s folder</b>
-                <span className="block truncate font-term text-[16px] text-muted" title={info.path}>{info.path}</span>
-                {!info.managed && <span className="block text-[12px] text-muted">This is your own folder, so HQ never deletes it.</span>}
-                {info.managed && !info.exists && <span className="block text-[12px] text-muted">The folder doesn't exist.</span>}
+                <span className="block truncate font-term text-[16px] text-ink-2" title={info.path}>{info.path}</span>
+                {!info.managed && <span className="block text-[12px] text-ink-2">This is your own folder, so HQ never deletes it.</span>}
+                {info.managed && !info.exists && <span className="block text-[12px] text-ink-2">The folder doesn't exist.</span>}
                 {info.managed && info.exists && (
-                  <span className={`block text-[12px] ${atRisk ? "font-semibold text-red" : "text-muted"}`}>
+                  <span className={`block text-[12px] ${atRisk ? "font-semibold text-mark-bad" : "text-ink-2"}`}>
                     {atRisk
                       ? `Warning: ${[info.unpushedCommits ? `${info.unpushedCommits} commit${info.unpushedCommits > 1 ? "s" : ""} not pushed` : "", info.changedFiles ? `${info.changedFiles} file${info.changedFiles > 1 ? "s" : ""} changed` : ""].filter(Boolean).join(" · ")} — deleting loses them.`
                       : "Everything here is committed and pushed."}

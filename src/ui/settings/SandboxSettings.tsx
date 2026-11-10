@@ -20,11 +20,11 @@ function KeyEditor({ keys, onSet, onRemove, disabled }: { keys: string[]; onSet:
   const [value, setValue] = useState("");
   return (
     <div>
-      <ul className="mb-2 flex flex-wrap gap-1.5">
-        {keys.length === 0 && <li className="text-[13px] text-muted">None</li>}
+      <ul className="mb-2 flex flex-wrap gap-2">
+        {keys.length === 0 && <li className="text-[13px] text-ink-2">None</li>}
         {keys.map((k) => (
           <li key={k} className="chip font-term text-[15px]">
-            {k} <span className="text-muted">••••</span>
+            {k} <span className="text-ink-2">••••</span>
             <button className="ml-1 text-[12px]" aria-label={`Remove ${k} key`} onClick={() => window.confirm(`Remove the ${k} key from sbx?`) && onRemove(k)}>
               ✕
             </button>
@@ -32,7 +32,7 @@ function KeyEditor({ keys, onSet, onRemove, disabled }: { keys: string[]; onSet:
         ))}
       </ul>
       {disabled ? (
-        <p className="text-[12px] text-muted">{disabled}</p>
+        <p className="text-[12px] text-ink-2">{disabled}</p>
       ) : (
         <form
           className="grid grid-cols-[150px_1fr_auto] items-end gap-2"
@@ -85,7 +85,7 @@ export function SandboxSettingsTab({ initialAgentId }: { initialAgentId?: string
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center gap-2">
         {snap.config.team.map((a) => (
-          <button key={a.id} className="btn flex items-center gap-1.5 text-[14px]" aria-pressed={a.id === agent.id} onClick={() => setAgentId(a.id)}>
+          <button key={a.id} className="btn flex items-center gap-2 text-[14px]" aria-pressed={a.id === agent.id} onClick={() => setAgentId(a.id)}>
             <Dot color={a.color} size={8} /> {a.name}
           </button>
         ))}
@@ -111,7 +111,7 @@ export function SandboxSettingsTab({ initialAgentId }: { initialAgentId?: string
             Copy to all agents
           </button>
         </div>
-        <p className="mb-3 text-[13px] text-muted">
+        <p className="mb-3 text-[13px] text-ink-2">
           On top of the machine's base policy ({sbx.basePolicy}). Blocked wins over allowed. Applied with{" "}
           <code className="font-term text-[15px]">sbx policy allow/deny network --sandbox</code>.
         </p>
@@ -123,18 +123,18 @@ export function SandboxSettingsTab({ initialAgentId }: { initialAgentId?: string
             <ChipList items={sb.deny} onChange={(deny) => update({ deny })} placeholder="*.googleapis.com" validate={isDomain} />
           </Field>
         </div>
-        {state?.syncError && <p className="mt-2 border border-ink bg-bad-fill px-2 py-1 text-[13px] text-red">sbx: {state.syncError}</p>}
+        {state?.syncError && <p className="mt-2 border border-ink bg-bad-fill px-2 py-1 text-[13px] text-mark-bad">sbx: {state.syncError}</p>}
         <div className="mt-3">
           <div className="mb-1 text-[13px] font-semibold">Rules in effect {live ? "(read from sbx)" : "(demo)"}</div>
           {!sandboxExists ? (
-            <p className="text-[12px] text-muted">{agent.name}'s sandbox doesn't exist yet. The rules above are applied when it's created on first Start.</p>
+            <p className="text-[12px] text-ink-2">{agent.name}'s sandbox doesn't exist yet. The rules above are applied when it's created on first Start.</p>
           ) : (
-            <ul className="flex flex-wrap gap-1.5">
-              {state?.rules.length === 0 && <li className="text-[12px] text-muted">No sandbox-specific rules.</li>}
+            <ul className="flex flex-wrap gap-2">
+              {state?.rules.length === 0 && <li className="text-[12px] text-ink-2">No sandbox-specific rules.</li>}
               {state?.rules.map((r) =>
                 r.resources.map((res) => (
-                  <li key={`${r.id}-${res}`} className="chip font-term text-[14px]" style={{ ["--c" as string]: r.decision === "allow" ? "#c8f5d2" : "#ffd0dc" }} title={`${r.decision} · added by ${SOURCE[r.source]}`}>
-                    {r.decision === "allow" ? "✓" : "✗"} {res} <span className="text-[12px] text-muted">{SOURCE[r.source]}</span>
+                  <li key={`${r.id}-${res}`} className="chip font-term text-[14px]" style={{ ["--c" as string]: r.decision === "allow" ? "#cfe9d5" : "#f6cfcf" }} title={`${r.decision} · added by ${SOURCE[r.source]}`}>
+                    {r.decision === "allow" ? "✓" : "✗"} {res} <span className="text-[12px] text-ink-2">{SOURCE[r.source]}</span>
                   </li>
                 )),
               )}
@@ -145,7 +145,7 @@ export function SandboxSettingsTab({ initialAgentId }: { initialAgentId?: string
 
       <section className="border border-ink bg-white p-3">
         <SectionTitle>Service keys for {agent.name} only</SectionTitle>
-        <p className="mb-2 text-[13px] text-muted">
+        <p className="mb-2 text-[13px] text-ink-2">
           The host proxy adds these to {agent.name}'s requests, so the key never enters the VM. HQ passes the value straight to{" "}
           <code className="font-term text-[15px]">sbx secret set</code> and never stores it.
         </p>
@@ -159,28 +159,28 @@ export function SandboxSettingsTab({ initialAgentId }: { initialAgentId?: string
 
       <section className="border border-ink bg-white p-3">
         <SectionTitle>App variables (env file)</SectionTitle>
-        <p className="mb-2 text-[13px] text-muted">
+        <p className="mb-2 text-[13px] text-ink-2">
           For values your app needs to run and test (DATABASE_URL, STRIPE_KEY…). One <code className="font-term text-[15px]">KEY=value</code> per line. HQ never reads or commits this file. When the agent starts, the values become
           environment variables in its session and in its Shell tab — not a .env file in the project. Restart the agent after editing.
         </p>
         <div className="flex items-center gap-2">
-          <code className="min-w-0 flex-1 truncate border border-ink bg-cream px-2 py-0.5 font-term text-[16px]" title={state?.envFile.path}>
+          <code className="min-w-0 flex-1 truncate border border-ink bg-paper px-2 py-1 font-term text-[16px]" title={state?.envFile.path}>
             {state?.envFile.path ?? "—"}
           </code>
           <button className="btn text-[13px]" onClick={() => officeActions.openEnvFile(agent.id)}>
             {state?.envFile.exists ? "Open" : "Create & open"}
           </button>
         </div>
-        <p className="mt-2 text-[12px] font-semibold text-[#a35d00]">⚠ Unlike service keys, these values do enter the VM. Use test or development credentials. Restart the agent after editing.</p>
+        <p className="mt-2 text-[12px] font-semibold text-mark-warn">Warning: unlike service keys, these values do enter the VM. Use test or development credentials. Restart the agent after editing.</p>
       </section>
 
       <h3 className="-mb-2 mt-2 text-[18px] font-bold">This machine — all sandboxes</h3>
-      <p className="-mt-3 text-[13px] text-muted">These are sbx's machine-wide settings. They affect every sandbox on this machine, including ones HQ didn't create.</p>
+      <p className="-mt-3 text-[13px] text-ink-2">These are sbx's machine-wide settings. They affect every sandbox on this machine, including ones HQ didn't create.</p>
 
       <section className="border border-ink bg-white p-3">
         <SectionTitle>Base network policy</SectionTitle>
         <p className="text-[15px]">{BASE[sbx.basePolicy]}</p>
-        <p className="mt-1 text-[12px] text-muted">
+        <p className="mt-1 text-[12px] text-ink-2">
           Set once with <code className="font-term text-[14px]">sbx policy init</code>. Changing it means <code className="font-term text-[14px]">sbx policy reset</code>, which deletes every rule on this
           machine, so HQ doesn't do it. HQ always allows <code className="font-term text-[14px]">localhost:{port}</code> and{" "}
           <code className="font-term text-[14px]">host.docker.internal:{port}</code> so agents can reach it.{" "}
