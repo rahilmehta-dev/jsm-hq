@@ -46,6 +46,20 @@
   --color-bad-fill: #f6cfcf;
   --color-ok-fill: #cfe9d5;
   --color-well: #101418;
+  --color-well-ink: #e8e8e8;
+  --color-well-dim: #a9b0b8;
+  --color-well-err: #f6cfcf;
+
+  /* Marks: saturated hues for dots and icons only, never text on light surfaces. */
+  --color-mark-working: #1b6ca8;
+  --color-mark-warn: #946000;
+  --color-mark-bad: #b3261e;
+  --color-mark-ok: #1d7a3a;
+  --color-mark-idle: #5c5c5c;
+
+  /* Campus ground (HSL saturation <= 25%). */
+  --color-lawn: #a9bf9a;
+  --color-lawn-d: #9ab38b;
 
   --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-term: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -56,6 +70,7 @@
   --text-base: 14px;
   --text-lg: 17px;
   --text-xl: 22px;
+  --text-label: 12px; /* campus plates, bold */
 
   /* Flat materials: one hard-offset shadow, no blur. */
   --shadow-window: 2px 2px 0 #000000;
@@ -85,6 +100,9 @@ html[data-font] .font-term {
 }
 
 @layer base {
+  html {
+    background: var(--color-desk);
+  }
   html,
   body,
   #root {

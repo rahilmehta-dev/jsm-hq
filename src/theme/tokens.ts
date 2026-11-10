@@ -33,6 +33,20 @@ export const classic = {
   ink2: "#4d4d4d", // secondary text
   select: "#3a5a8c", // selection, focus, accent
   selectInk: "#ffffff",
+  warnFill: "#f5e2b8",
+  badFill: "#f6cfcf",
+  okFill: "#cfe9d5",
+  markWorking: "#1b6ca8",
+  markWarn: "#946000",
+  markBad: "#b3261e",
+  markOk: "#1d7a3a",
+  markIdle: "#5c5c5c",
+  well: "#101418", // terminal inset
+  wellInk: "#e8e8e8",
+  wellDim: "#a9b0b8",
+  wellErr: "#f6cfcf",
+  lawn: "#a9bf9a", // campus ground
+  lawnD: "#9ab38b",
 } as const;
 
 export interface ChipStyle {
