@@ -20,6 +20,45 @@ export const colors = {
   white: "#fff1e8",
 } as const;
 
+/**
+ * Classic Mac chrome palette (System 6/7 / Platinum). Mirrors the --color-* tokens in index.css;
+ * theme/contrast.test.ts keeps the two in sync and checks every text pair against WCAG.
+ */
+export const classic = {
+  paper: "#ffffff", // window background
+  platinum: "#dddddd", // chrome, raised surfaces, title bars
+  platinum2: "#c8c8c8", // pressed / inset
+  desk: "#a8a8a8", // app backdrop
+  ink: "#000000", // text and borders
+  ink2: "#4d4d4d", // secondary text
+  select: "#3a5a8c", // selection, focus, accent
+  selectInk: "#ffffff",
+} as const;
+
+export interface ChipStyle {
+  label: string;
+  /** Light fill, always used with ink text. */
+  fill: string;
+  /** Saturated hue for dots and icons only (never text on light surfaces). */
+  mark: string;
+}
+
+export const stateChip: Record<AgentState, ChipStyle> = {
+  working: { label: "Working", fill: "#cfe4f5", mark: "#1b6ca8" },
+  "needs-input": { label: "Needs input", fill: "#f6cfcf", mark: "#b3261e" },
+  "in-review": { label: "In review", fill: "#f5e2b8", mark: "#946000" },
+  "review-passed": { label: "Review passed", fill: "#cfe9d5", mark: "#1d7a3a" },
+  idle: { label: "Idle", fill: "#e4e4e4", mark: "#5c5c5c" },
+};
+
+export const reviewChip: Record<ReviewState, ChipStyle> = {
+  pending: { label: "Queued", fill: "#e4e4e4", mark: "#5c5c5c" },
+  reviewing: { label: "Reviewing", fill: "#f5e2b8", mark: "#946000" },
+  "changes-requested": { label: "Changes", fill: "#f6cfcf", mark: "#b3261e" },
+  passed: { label: "Passed", fill: "#cfe9d5", mark: "#1d7a3a" },
+};
+export const mergedChip: ChipStyle = { label: "Merged", fill: "#cfe9d5", mark: "#1d7a3a" };
+
 export interface StateStyle {
   label: string;
   color: string;

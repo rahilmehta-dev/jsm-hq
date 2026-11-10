@@ -3,21 +3,21 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { AgentState, ReviewState } from "../data/types";
 import { robotCanvases } from "../office/draw/robots";
-import { reviewStyle, stateStyle } from "../theme/tokens";
+import { mergedChip, reviewChip, stateChip } from "../theme/tokens";
 
 export function StateChip({ state, blink = true }: { state: AgentState; blink?: boolean }) {
-  const st = stateStyle[state];
+  const st = stateChip[state];
   return (
-    <span className={`chip chip-dot ${blink && state === "needs-input" ? "blink" : ""}`} style={{ ["--c" as string]: st.color }}>
+    <span className={`chip chip-dot ${blink && state === "needs-input" ? "blink" : ""}`} style={{ ["--c" as string]: st.fill, ["--m" as string]: st.mark }}>
       {st.label}
     </span>
   );
 }
 
 export function ReviewChip({ review, merged }: { review: ReviewState; merged?: boolean }) {
-  const st = merged ? { label: "Merged", color: "#00873a" } : reviewStyle[review];
+  const st = merged ? mergedChip : reviewChip[review];
   return (
-    <span className="chip chip-dot" style={{ ["--c" as string]: st.color, color: merged ? "#fff" : undefined }}>
+    <span className="chip chip-dot" style={{ ["--c" as string]: st.fill, ["--m" as string]: st.mark }}>
       {st.label}
     </span>
   );
@@ -40,7 +40,7 @@ export function Portrait({ color, lead, size = 40 }: { color: string; lead: bool
       ref={ref}
       width={16}
       height={16}
-      className="shrink-0 border-[3px] border-ink bg-navy"
+      className="shrink-0 border border-ink bg-platinum"
       style={{ width: size, height: size, imageRendering: "pixelated" }}
       aria-hidden
     />
@@ -48,11 +48,11 @@ export function Portrait({ color, lead, size = 40 }: { color: string; lead: bool
 }
 
 export function Dot({ color, size = 10 }: { color: string; size?: number }) {
-  return <i className="inline-block shrink-0 border-2 border-ink" style={{ width: size, height: size, background: color }} />;
+  return <i className="inline-block shrink-0 border border-ink" style={{ width: size, height: size, background: color }} />;
 }
 
 export function SectionTitle({ children }: { children: ReactNode }) {
-  return <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-[0.12em] text-muted">{children}</h3>;
+  return <h3 className="mb-2 border-b border-ink pb-1 text-[12px] font-bold uppercase tracking-[0.08em] text-ink-2">{children}</h3>;
 }
 
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
