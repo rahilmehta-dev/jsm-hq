@@ -5,8 +5,8 @@ import { Field, SectionTitle } from "../kit";
 import { TerminalView } from "../drawers/TerminalView";
 
 const STATUS: Record<string, [string, string]> = {
-  ready: ["Ready", "#00e436"],
-  "needs-auth": ["Needs sign-in", "#ffa300"],
+  ready: ["Ready", "#cfe9d5"],
+  "needs-auth": ["Needs sign-in", "#f5e2b8"],
 };
 
 /** MCP servers from Docker Sandboxes' registry, and which agents get them. */
@@ -17,7 +17,7 @@ export function McpSettings() {
   const [signingIn, setSigningIn] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", url: "", apiKey: "", command: "", args: "", local: false });
-  if (!mcp) return <p className="text-[14px] text-muted">Loading MCP servers…</p>;
+  if (!mcp) return <p className="text-[14px] text-ink-2">Loading MCP servers…</p>;
 
   const servers = mcp.servers;
   const sandboxed = team.filter((a) => a.mode === "sandbox");
@@ -41,7 +41,7 @@ export function McpSettings() {
 
   return (
     <div className="flex flex-col gap-5">
-      <p className="m-0 text-[14px] text-muted">
+      <p className="m-0 text-[14px] text-ink-2">
         MCP servers come from Docker Sandboxes' registry. Each one runs through sbx's gateway, so its sign-in or key never enters a sandbox. Tick a server
         for an agent and it's attached right away if the agent is running; agents don't need a restart.
       </p>
@@ -53,17 +53,17 @@ export function McpSettings() {
             Refresh
           </button>
         </div>
-        {mcp.error && <p className="mb-2 border-[3px] border-orange bg-[#fff1d6] px-3 py-1.5 text-[13px]">{mcp.error}</p>}
+        {mcp.error && <p className="mb-2 border border-ink bg-warn-fill px-3 py-2 text-[13px]">{mcp.error}</p>}
         {servers.length === 0 ? (
-          <p className="text-[13px] text-muted">No MCP servers yet. Add one below.</p>
+          <p className="text-[13px] text-ink-2">No MCP servers yet. Add one below.</p>
         ) : (
-          <div className="border-[3px] border-ink bg-white">
+          <div className="border border-ink bg-white">
             {servers.map((s) => {
-              const [label, color] = STATUS[s.status] ?? [s.status, "#83769c"];
+              const [label, color] = STATUS[s.status] ?? [s.status, "#e4e4e4"];
               return (
-                <div key={s.name} className="flex items-center gap-3 border-t-2 border-dashed border-cream-3 px-3 py-2 first:border-t-0">
+                <div key={s.name} className="flex items-center gap-3 border-t border-ink px-3 py-2 first:border-t-0">
                   <b className="font-term text-[17px]">{s.name}</b>
-                  <span className="text-[12px] text-muted">{s.transport}</span>
+                  <span className="text-[12px] text-ink-2">{s.transport}</span>
                   <span className="chip chip-dot text-[12px]" style={{ ["--c" as string]: color }}>
                     {label}
                   </span>
@@ -81,7 +81,7 @@ export function McpSettings() {
                   )}
                   {deleting === s.name ? (
                     <>
-                      <span className="text-[12px] text-red">Removes it from every sandbox on this Mac.</span>
+                      <span className="text-[12px] text-mark-bad">Removes it from every sandbox on this Mac.</span>
                       <button
                         className="btn px-2 text-[12px]"
                         onClick={() => {
@@ -106,8 +106,8 @@ export function McpSettings() {
           </div>
         )}
         {signingIn && (
-          <div className="mt-2 border-[3px] border-ink">
-            <div className="flex items-center justify-between bg-navy px-2 py-1 text-[13px] text-cream">
+          <div className="mt-2 border border-ink">
+            <div className="flex items-center justify-between bg-well px-2 py-1 text-[13px] text-well-ink">
               <span>Signing in to {signingIn} · your browser opens; answer here if it asks</span>
               <button className="text-[12px] underline" onClick={() => setSigningIn(null)}>
                 Hide
@@ -124,14 +124,14 @@ export function McpSettings() {
         <section>
           <SectionTitle>Which agents get them</SectionTitle>
           {sandboxed.length === 0 ? (
-            <p className="text-[13px] text-muted">MCP servers attach to sandboxes. All agents are in Local mode.</p>
+            <p className="text-[13px] text-ink-2">MCP servers attach to sandboxes. All agents are in Local mode.</p>
           ) : (
-            <table className="w-full border-[3px] border-ink bg-white text-[14px]">
+            <table className="w-full border border-ink bg-white text-[14px]">
               <thead>
-                <tr className="bg-cream-2 text-left">
-                  <th className="px-3 py-1.5">Server</th>
+                <tr className="bg-platinum text-left">
+                  <th className="px-3 py-2">Server</th>
                   {sandboxed.map((a) => (
-                    <th key={a.id} className="px-3 py-1.5 text-center">
+                    <th key={a.id} className="px-3 py-2 text-center">
                       {a.name}
                     </th>
                   ))}
@@ -139,15 +139,15 @@ export function McpSettings() {
               </thead>
               <tbody>
                 {servers.map((s) => (
-                  <tr key={s.name} className="border-t-2 border-dashed border-cream-3">
-                    <td className="px-3 py-1.5 font-term text-[16px]">{s.name}</td>
+                  <tr key={s.name} className="border-t border-ink">
+                    <td className="px-3 py-2 font-term text-[16px]">{s.name}</td>
                     {sandboxed.map((a) => {
                       const on = (a.mcp ?? []).includes(s.name);
                       const attached = (mcp.attached[a.id] ?? []).includes(s.name);
                       return (
-                        <td key={a.id} className="px-3 py-1.5 text-center">
+                        <td key={a.id} className="px-3 py-2 text-center">
                           <input type="checkbox" checked={on} aria-label={`${s.name} for ${a.name}`} onChange={(e) => toggle(a.id, s.name, e.target.checked)} />
-                          {on && !attached && <div className="text-[11px] text-muted">on next start</div>}
+                          {on && !attached && <div className="text-[12px] text-ink-2">on next start</div>}
                         </td>
                       );
                     })}
@@ -156,9 +156,9 @@ export function McpSettings() {
               </tbody>
             </table>
           )}
-          {team.some((a) => a.mode === "local") && <p className="mt-1 text-[12px] text-muted">Local-mode agents aren't listed: MCP servers attach to sandboxes.</p>}
+          {team.some((a) => a.mode === "local") && <p className="mt-1 text-[12px] text-ink-2">Local-mode agents aren't listed: MCP servers attach to sandboxes.</p>}
           {stuck.map(({ agent, name }) => (
-            <p key={`${agent.id}-${name}`} className="mt-2 flex flex-wrap items-center gap-2 border-[3px] border-ink bg-[#fff1d6] px-3 py-1.5 text-[13px]">
+            <p key={`${agent.id}-${name}`} className="mt-2 flex flex-wrap items-center gap-2 border border-ink bg-warn-fill px-3 py-2 text-[13px]">
               <span className="flex-1">
                 {agent.name}'s sandbox still has <b>{name}</b>: sbx can't detach a server, so it goes when the sandbox is recreated. The folder and code are
                 kept; installed packages and the conversation are not.
@@ -176,11 +176,11 @@ export function McpSettings() {
         </section>
       )}
 
-      <section className="border-[3px] border-ink bg-white p-3">
+      <section className="border border-ink bg-white p-3">
         <SectionTitle>Add a server</SectionTitle>
         {suggestions.length > 0 && (
-          <div className="mb-2 flex flex-wrap items-center gap-1.5 text-[13px]">
-            <span className="text-muted">From your stack:</span>
+          <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
+            <span className="text-ink-2">From your stack:</span>
             {suggestions.map((t) => (
               <button key={t.id} className="btn px-2 text-[12px]" onClick={() => setForm({ ...form, local: false, name: t.id, url: t.mcp ?? "" })}>
                 {t.name}
@@ -218,7 +218,7 @@ export function McpSettings() {
             </Field>
           )}
         </div>
-        {tip && <p className="mt-2 text-[13px] text-muted">{tip}</p>}
+        {tip && <p className="mt-2 text-[13px] text-ink-2">{tip}</p>}
         <div className="mt-3 flex items-center gap-3">
           <button className="btn" disabled={!canAdd} onClick={add}>
             Add server

@@ -28,7 +28,7 @@ export function TeamSettings() {
   return (
     <div className="flex flex-col gap-5">
       <GroupBox title={`Team · ${team.length} agents`}>
-        <p className="mb-3 text-[14px] text-muted">
+        <p className="mb-3 text-[14px] text-ink-2">
           Changes to model, mode or folder apply the next time the agent starts. One lead plans and assigns work. Every other agent gets its own desk, sandbox and (optionally) environment. The office grows as you add agents.
         </p>
         <div className="flex flex-col gap-2">
@@ -59,7 +59,7 @@ function AgentRow({ agent, expanded, onToggle, onRemove }: { agent: AgentConfig;
         </Field>
         <Field label="Role">
           {agent.isLead ? (
-            <div className="field flex h-9 items-center bg-cream-2">Lead</div>
+            <div className="field flex h-9 items-center bg-platinum">Lead</div>
           ) : (
             <CommitInput className="field" value={agent.role} list="role-suggestions" onCommit={(v) => v.trim() && set({ role: v.trim() })} />
           )}
@@ -73,13 +73,13 @@ function AgentRow({ agent, expanded, onToggle, onRemove }: { agent: AgentConfig;
             <option value="local">Local</option>
           </select>
         </Field>
-        <div className="flex gap-1.5">
+        <div className="flex gap-2">
           <button className="btn px-2 text-[13px]" aria-expanded={expanded} onClick={onToggle}>
             {expanded ? "Less" : "More"}
           </button>
           {!agent.isLead && (
             <button
-              className="btn px-2 text-[13px] text-red"
+              className="btn px-2 text-[13px] text-mark-bad"
               onClick={onRemove}
             >
               Remove
@@ -88,19 +88,19 @@ function AgentRow({ agent, expanded, onToggle, onRemove }: { agent: AgentConfig;
         </div>
       </div>
       {agent.mode === "local" && (
-        <div className="border-t border-ink px-3 py-1 text-[12px] text-muted">
+        <div className="border-t border-ink px-3 py-1 text-[12px] text-ink-2">
           Local mode runs plain <code>{agent.cli}</code> in the agent's own folder. Permission prompts stay on.
         </div>
       )}
       {expanded && (
-        <div className="grid grid-cols-2 gap-3 border-t border-ink bg-cream p-3">
+        <div className="grid grid-cols-2 gap-3 border-t border-ink bg-paper p-3">
           <Field label="Colour">
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {agentPalette.map((c) => (
                 <button
                   key={c}
                   className="h-6 w-6 rounded-full border border-ink"
-                  style={{ background: c, outline: c === agent.color ? "2px solid #1f2421" : undefined, outlineOffset: 1 }}
+                  style={{ background: c, outline: c === agent.color ? "2px solid #000" : undefined, outlineOffset: 1 }}
                   aria-label={`Colour ${c}`}
                   onClick={() => set({ color: c })}
                 />
@@ -182,9 +182,9 @@ type RoomView = ProjectRoomConfig & { id: string };
 
 /** What a worker is doing right now, from the status its project reported (expired statuses count as idle). */
 function liveStatus(st: RoomWorkerStatus | undefined): { label: string; tone: string } {
-  if (!st || Date.now() - Date.parse(st.at) > st.ttl * 1000) return { label: "Idle", tone: "#b9b5ab" };
+  if (!st || Date.now() - Date.parse(st.at) > st.ttl * 1000) return { label: "Idle", tone: "#5c5c5c" };
   const label = st.note ? `${st.state}: ${st.note}` : st.state;
-  return { label: label[0].toUpperCase() + label.slice(1), tone: st.state === "error" ? "#d6455d" : st.state === "done" ? "#3f8f5a" : "#2f7fc4" };
+  return { label: label[0].toUpperCase() + label.slice(1), tone: st.state === "error" ? "#b3261e" : st.state === "done" ? "#1d7a3a" : "#1b6ca8" };
 }
 
 /** Project rooms: one pavilion per project on the campus, each with its own workers, demo switch and live status. */
@@ -197,7 +197,7 @@ function ProjectRoomSettings() {
   const [name, setName] = useState("");
   return (
     <GroupBox title="Project rooms">
-      <p className="mb-3 text-[13px] text-muted">
+      <p className="mb-3 text-[13px] text-ink-2">
         Each project gets its own pavilion on the campus for its own workers: a script that fetches emails, a local model that writes them, a bot that sends them. They aren't coding agents. A project reports what they do through a local API (see Connect a project below); until then its pavilion plays a demo animation.
       </p>
       <div className="flex flex-col gap-3">
@@ -223,7 +223,7 @@ function ProjectRoomSettings() {
         </form>
       )}
       {rooms.length > 0 && (
-        <p className="mt-2 text-[12px] text-muted">
+        <p className="mt-2 text-[12px] text-ink-2">
           {scoped ? `${rooms.length} rooms.` : "One room."} A project adds its own room by calling <code>PUT /room</code> (or the <code>setup_project_room</code> tool); it appears here and on the campus right away.
         </p>
       )}
@@ -262,7 +262,7 @@ function RoomCard({ room, scoped, statuses }: { room: RoomView; scoped: boolean;
         >
           Remove room
         </button>
-        <code className="rounded-md bg-cream-2 px-1.5 py-0.5 text-[12px] text-muted" title="Room id: use it as ?room=<id> or HQ_ROOM_ID">
+        <code className="rounded-md bg-platinum px-2 py-1 text-[12px] text-ink-2" title="Room id: use it as ?room=<id> or HQ_ROOM_ID">
           {room.id}
         </code>
       </div>
@@ -271,7 +271,7 @@ function RoomCard({ room, scoped, statuses }: { room: RoomView; scoped: boolean;
           {workers.map((w, i) => {
             const st = liveStatus(statuses?.[roomWorkerKey(room.id, w.id, scoped)]);
             return (
-              <div key={`${w.id}-${i}`} className="grid grid-cols-[28px_1fr_200px_minmax(0,1.1fr)_auto] items-center gap-3 rounded-[4px] border border-ink bg-cream p-2">
+              <div key={`${w.id}-${i}`} className="grid grid-cols-[28px_1fr_200px_minmax(0,1.1fr)_auto] items-center gap-3 rounded-[4px] border border-ink bg-paper p-2">
                 <span className="h-5 w-5 rounded-full border border-ink" style={{ background: w.color }} aria-hidden />
                 <CommitInput className="field" value={w.name} aria-label="Worker name" onCommit={(v) => v.trim() && change(i, { name: v.trim() })} />
                 <select className="field" value={w.kind} aria-label="What it does" onChange={(e) => change(i, { kind: e.target.value as ProjectWorkerKind })}>
@@ -281,11 +281,11 @@ function RoomCard({ room, scoped, statuses }: { room: RoomView; scoped: boolean;
                     </option>
                   ))}
                 </select>
-                <span className="flex min-w-0 items-center gap-1.5 text-[12px] text-muted" title={st.label}>
+                <span className="flex min-w-0 items-center gap-2 text-[12px] text-ink-2" title={st.label}>
                   <i className="h-2 w-2 shrink-0 rounded-full" style={{ background: st.tone }} aria-hidden />
                   <span className="truncate">{st.label}</span>
                 </span>
-                <button className="btn px-2 text-[13px] text-red" onClick={() => save({ workers: workers.filter((_, k) => k !== i) })}>
+                <button className="btn px-2 text-[13px] text-mark-bad" onClick={() => save({ workers: workers.filter((_, k) => k !== i) })}>
                   Remove
                 </button>
               </div>
@@ -333,7 +333,7 @@ function Connect({ api, rooms, scoped }: { api: { url: string; token: string } |
   const vars = (token: string) => `export HQ_ROOM_URL=${api?.url}\nexport HQ_ROOM_TOKEN=${token}${scoped && room ? `\nexport HQ_ROOM_ID=${room.id}` : ""}`;
   return (
     <GroupBox title="Connect a project" className="mt-3">
-      <p className="mb-2 text-[12px] text-muted">
+      <p className="mb-2 text-[12px] text-ink-2">
         Any project can create its room and show what its workers do, through a small local HTTP API. Set these variables in the project, then use the Python or Node helper in <code>sdk/</code> (see <code>docs/project-rooms.md</code>).
         {scoped ? " With several rooms, each project also sets its own room id." : ""}
       </p>
@@ -363,7 +363,7 @@ function Connect({ api, rooms, scoped }: { api: { url: string; token: string } |
           </div>
         </>
       ) : (
-        <p className="text-[12px] text-muted">Available when you run My HQ on a repo (not in the demo).</p>
+        <p className="text-[12px] text-ink-2">Available when you run My HQ on a repo (not in the demo).</p>
       )}
     </GroupBox>
   );
@@ -409,7 +409,7 @@ function AddAgent() {
           Add
         </button>
       </form>
-      <p className="mt-2 text-[12px] text-muted">
+      <p className="mt-2 text-[12px] text-ink-2">
         HQ starts a new sandbox with the lead's network policy and allows it to reach HQ at host.docker.internal.
       </p>
       <datalist id="codex-models">

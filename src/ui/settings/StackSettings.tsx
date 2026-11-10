@@ -31,7 +31,7 @@ export function StackSettings() {
 
   return (
     <div className="flex flex-col gap-5">
-      <p className="m-0 text-[14px] text-muted">
+      <p className="m-0 text-[14px] text-ink-2">
         Optional. Tell the agents what this project is built with: they'll get it in their ROLE.md, the tools' agent skills, and access to their docs once you allow it.
         Skip it and agents work as before.
       </p>
@@ -54,8 +54,8 @@ export function StackSettings() {
           <Keys stack={stack} />
           <section>
             <SectionTitle>What agents read</SectionTitle>
-            <p className="mb-2 text-[13px] text-muted">Added to every agent's ROLE.md the next time it starts.</p>
-            <pre className="m-0 whitespace-pre-wrap border-[3px] border-ink bg-navy-2 p-3 font-term text-[16px] leading-tight text-[#dfe6ff]">{stackRoleMd(stack)}</pre>
+            <p className="mb-2 text-[13px] text-ink-2">Added to every agent's ROLE.md the next time it starts.</p>
+            <pre className="m-0 whitespace-pre-wrap border border-ink bg-well p-3 font-term text-[16px] leading-tight text-well-ink">{stackRoleMd(stack)}</pre>
           </section>
           <div>
             <button className="btn text-[13px]" onClick={() => officeActions.updateStack(null)}>
@@ -74,11 +74,11 @@ function Ponytail() {
   return (
     <section>
       <SectionTitle>Agent style</SectionTitle>
-      <label className="flex items-start gap-2.5 border-[3px] border-ink bg-white px-3 py-2">
+      <label className="flex items-start gap-3 border border-ink bg-white px-3 py-2">
         <input type="checkbox" className="mt-1" checked={on} onChange={(e) => officeActions.updateProject({ ponytail: e.target.checked })} />
         <span>
           <b className="text-[15px]">Ponytail: lazy senior dev mode</b>
-          <span className="block text-[13px] text-muted">
+          <span className="block text-[13px] text-ink-2">
             Agents write the least code that works, and get {PONYTAIL_SKILLS.skills.length} ponytail skills for reviews and audits. Takes effect when each agent next starts.{" "}
             <a className="underline" href={PONYTAIL_URL} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
               About ponytail
@@ -99,10 +99,10 @@ function Frameworks({ stack, save }: { stack: StackConfig; save: (s: StackConfig
   return (
     <section>
       <SectionTitle>Frameworks</SectionTitle>
-      <p className="mb-2 text-[13px] text-muted">Pick one or more, e.g. Next.js for the app and Express for an API.</p>
-      <div className="mb-3 flex flex-wrap gap-1.5">
+      <p className="mb-2 text-[13px] text-ink-2">Pick one or more, e.g. Next.js for the app and Express for an API.</p>
+      <div className="mb-3 flex flex-wrap gap-2">
         {[...frameworks(), { id: "other", name: "Other" }].map((f) => (
-          <button key={f.id} className="btn px-2 py-0.5 text-[13px]" aria-pressed={chosen(f.id)} onClick={() => toggle(f.id)}>
+          <button key={f.id} className="btn px-2 py-1 text-[13px]" aria-pressed={chosen(f.id)} onClick={() => toggle(f.id)}>
             {f.name}
           </button>
         ))}
@@ -110,7 +110,7 @@ function Frameworks({ stack, save }: { stack: StackConfig; save: (s: StackConfig
       {stack.frameworks.length > 0 && (
         <div className="flex flex-col gap-2">
           {stack.frameworks.map((f, i) => (
-            <div key={f.id} className="grid grid-cols-[150px_1fr_1fr] items-end gap-2 border-[3px] border-ink bg-white px-3 py-2">
+            <div key={f.id} className="grid grid-cols-[150px_1fr_1fr] items-end gap-2 border border-ink bg-white px-3 py-2">
               <b className="pb-2 text-[15px]">{f.id === "other" ? "Other" : stackTool(f.id)?.name}</b>
               {f.id === "other" ? (
                 <Field label="Name">
@@ -146,10 +146,10 @@ function ToolRow({ category, label, hint, stack, save }: { category: StackCatego
     save({ ...stack, tools });
   };
   return (
-    <div className="grid grid-cols-[150px_220px_1fr] items-center gap-3 border-[3px] border-ink bg-white px-3 py-2">
+    <div className="grid grid-cols-[150px_220px_1fr] items-center gap-3 border border-ink bg-white px-3 py-2">
       <div>
         <b className="text-[15px]">{label}</b>
-        <div className="text-[12px] text-muted">{hint}</div>
+        <div className="text-[12px] text-ink-2">{hint}</div>
       </div>
       <select className="field" value={choice?.id ?? ""} aria-label={label} onChange={(e) => set(e.target.value ? { id: e.target.value } : undefined)}>
         <option value="">None</option>
@@ -168,7 +168,7 @@ function ToolRow({ category, label, hint, stack, save }: { category: StackCatego
       ) : choice ? (
         <Skills id={choice.id} />
       ) : (
-        <span className="text-[13px] text-muted">Not set</span>
+        <span className="text-[13px] text-ink-2">Not set</span>
       )}
     </div>
   );
@@ -179,7 +179,7 @@ function Skills({ id }: { id: string }) {
   const t = stackTool(id);
   if (!t) return null;
   return (
-    <div className="flex flex-wrap items-center gap-1.5 pb-1 text-[12px]">
+    <div className="flex flex-wrap items-center gap-2 pb-1 text-[12px]">
       {t.skills.length ? (
         t.skills.map((s) => (
           <span key={s.source} className="chip font-term text-[14px]" title={s.skills.join(", ")}>
@@ -187,7 +187,7 @@ function Skills({ id }: { id: string }) {
           </span>
         ))
       ) : (
-        <span className="text-muted">No agent skills listed</span>
+        <span className="text-ink-2">No agent skills listed</span>
       )}
       {t.mcp && (
         <span className="chip font-term text-[14px]" title={t.mcp}>
@@ -220,14 +220,14 @@ function Access({ stack, sandboxed }: { stack: StackConfig; sandboxed: string[] 
   return (
     <section>
       <SectionTitle>Network access</SectionTitle>
-      <p className="mb-2 text-[13px] text-muted">
+      <p className="mb-2 text-[13px] text-ink-2">
         Sandboxes block most docs sites and APIs. Allow these for every sandboxed agent, or leave them: an agent that needs a site asks you first (<i>request_access</i>).
       </p>
-      <div className="border-[3px] border-ink bg-white">
+      <div className="border border-ink bg-white">
         {domains.map((d) => {
           const done = allowedForAll(d.domain);
           return (
-            <label key={d.domain} className="flex items-center gap-2.5 border-t-2 border-dashed border-cream-3 px-3 py-1.5 first:border-t-0">
+            <label key={d.domain} className="flex items-center gap-3 border-t border-ink px-3 py-2 first:border-t-0">
               <input
                 type="checkbox"
                 disabled={done}
@@ -240,8 +240,8 @@ function Access({ stack, sandboxed }: { stack: StackConfig; sandboxed: string[] 
                 }}
               />
               <span className="font-term text-[17px]">{d.domain}</span>
-              <span className="text-[12px] text-muted">{d.for.join(", ")}</span>
-              {done && <span className="ml-auto text-[12px] font-semibold" style={{ color: "#00a83a" }}>allowed</span>}
+              <span className="text-[12px] text-ink-2">{d.for.join(", ")}</span>
+              {done && <span className="ml-auto text-[12px] font-semibold" style={{ color: "#1d7a3a" }}>allowed</span>}
             </label>
           );
         })}
@@ -264,10 +264,10 @@ function Keys({ stack }: { stack: StackConfig }) {
   return (
     <section>
       <SectionTitle>Keys the app needs</SectionTitle>
-      <p className="mb-2 text-[13px] text-muted">
+      <p className="mb-2 text-[13px] text-ink-2">
         Put test keys in each agent's env file (Settings → Sandbox → Env file). HQ never asks for, stores or reads the values.
       </p>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-2">
         {keys.map((k) => (
           <span key={k.key} className="chip font-term text-[15px]" title={k.for}>
             {k.key}

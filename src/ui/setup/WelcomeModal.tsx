@@ -4,7 +4,7 @@ import { EMPTY_STACK, frameworks, STACK_CATEGORIES, toolsIn, type StackConfig } 
 import type { AgentCli, ReviewTool } from "../../data/types";
 import { officeActions, reviewToolLabel, useOffice } from "../../store/office";
 import { agentPalette } from "../../theme/tokens";
-import { Field, Portrait } from "../kit";
+import { Field, Portrait, TitleBar } from "../kit";
 import { CliSelect, ROLE_SUGGESTIONS } from "../settings/TeamSettings";
 
 interface WorkerDraft {
@@ -41,11 +41,11 @@ export function WelcomeModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[rgba(36,26,46,0.55)] p-4" role="dialog" aria-modal="true" aria-label="Welcome to My HQ">
+    <div className="fixed inset-0 z-50 grid place-items-center backdrop p-4" role="dialog" aria-modal="true" aria-label="Welcome to My HQ">
       <div className="panel flex max-h-[calc(100dvh-2rem)] w-[min(720px,100%)] flex-col">
-        <div className="border-b-[3px] border-ink px-4 py-2">
-          <h2 className="m-0 text-[22px] font-bold">Welcome to My HQ</h2>
-          <p className="m-0 text-[14px] text-muted">
+        <TitleBar title="Welcome to My HQ" />
+        <div className="border-b border-ink bg-platinum px-4 py-2">
+          <p className="m-0 text-[14px] text-ink-2">
             Set up the team for <b className="text-ink">{snap.config.project.repo || snap.config.project.name}</b>. You can change all of this later in Settings.
           </p>
         </div>
@@ -57,7 +57,7 @@ export function WelcomeModal() {
 
           <section>
             <h3 className="mb-1 text-[16px] font-bold">Lead</h3>
-            <p className="mb-2 text-[13px] text-muted">Plans the work, creates tasks and assigns them to workers.</p>
+            <p className="mb-2 text-[13px] text-ink-2">Plans the work, creates tasks and assigns them to workers.</p>
             <div className="grid grid-cols-[40px_1fr_150px] items-end gap-2">
               <Portrait color={agentPalette[0]} lead />
               <Field label="Name">
@@ -71,7 +71,7 @@ export function WelcomeModal() {
 
           <section>
             <h3 className="mb-1 text-[16px] font-bold">Workers · {workers.length}</h3>
-            <p className="mb-2 text-[13px] text-muted">Each worker gets its own desk, copy of the repo and sandbox.</p>
+            <p className="mb-2 text-[13px] text-ink-2">Each worker gets its own desk, copy of the repo and sandbox.</p>
             <datalist id="welcome-roles">
               {ROLE_SUGGESTIONS.map((r) => (
                 <option key={r} value={r} />
@@ -126,8 +126,8 @@ export function WelcomeModal() {
           </section>
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t-[3px] border-ink px-4 py-2">
-          <span className="text-[12px] text-muted">Saved to .jsmhq/config.json in your repo. Agents don't start until you press Start.</span>
+        <div className="flex items-center justify-between gap-3 border-t border-ink px-4 py-2">
+          <span className="text-[12px] text-ink-2">Saved to .jsmhq/config.json in your repo. Agents don't start until you press Start.</span>
           <button className="btn" disabled={!valid || sending} onClick={submit}>
             {sending ? "Creating…" : "Create team"}
           </button>
@@ -145,18 +145,18 @@ function WelcomeStack({ stack, setStack }: { stack: StackConfig; setStack: (s: S
     <section>
       <div className="flex items-center gap-3">
         <h3 className="m-0 text-[16px] font-bold">Stack</h3>
-        <span className="text-[13px] text-muted">Optional. Agents get the tools' skills and docs access.</span>
+        <span className="text-[13px] text-ink-2">Optional. Agents get the tools' skills and docs access.</span>
         <button className="btn ml-auto px-2 text-[12px]" aria-expanded={open} onClick={() => setOpen(!open)}>
           {open ? "Hide" : "Choose"}
         </button>
       </div>
       {open && (
         <div className="mt-2 flex flex-col gap-2">
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-2">
             {frameworks().map((f) => (
               <button
                 key={f.id}
-                className="btn px-2 py-0.5 text-[12px]"
+                className="btn px-2 py-1 text-[12px]"
                 aria-pressed={chosen(f.id)}
                 onClick={() => setStack({ ...stack, frameworks: chosen(f.id) ? stack.frameworks.filter((x) => x.id !== f.id) : [...stack.frameworks, { id: f.id }] })}
               >
@@ -166,7 +166,7 @@ function WelcomeStack({ stack, setStack }: { stack: StackConfig; setStack: (s: S
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {STACK_CATEGORIES.map((c) => (
-              <label key={c.id} className="flex flex-col gap-0.5 text-[12px] font-semibold">
+              <label key={c.id} className="flex flex-col gap-1 text-[12px] font-semibold">
                 {c.label}
                 <select
                   className="field"
@@ -188,7 +188,7 @@ function WelcomeStack({ stack, setStack }: { stack: StackConfig; setStack: (s: S
               </label>
             ))}
           </div>
-          <span className="text-[12px] text-muted">"Other" tools, where each framework lives, and network access are in Settings → Stack.</span>
+          <span className="text-[12px] text-ink-2">"Other" tools, where each framework lives, and network access are in Settings → Stack.</span>
         </div>
       )}
     </section>
