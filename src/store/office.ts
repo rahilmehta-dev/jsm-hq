@@ -6,8 +6,24 @@ import { createMockSource } from "../data/mock/mockSource";
 import type { ConnectionStatus, DataPreset, OfficeDataSource, OfficeEvent, SimSpeed } from "../data/source";
 import { createWsSource } from "../data/ws/wsSource";
 import type { StackConfig } from "../data/stack";
-import type { AccessDecision, NewMcpServer, AgentConfig, AgentStatus, OfficeSnapshot, RemoveAgentOptions, SetupCheckId, WelcomeInput, WorkspaceInfo } from "../data/types";
+import { prKey, type AccessDecision, type NewMcpServer, type AgentConfig, type AgentStatus, type OfficeSnapshot, type PullRequest, type RemoveAgentOptions, type SetupCheckId, type Task, type WelcomeInput, type WorkspaceInfo } from "../data/types";
 import { appendTerminal, clearTerminals } from "./terminal";
+
+/** The project's main repo ("owner/name"): PRs in it need no repo in their label. */
+const mainRepoOf = (snap: OfficeSnapshot) => snap.config.project.repo;
+
+/** `#12` for a PR in the main repo, `owner/name#12` for one in another. */
+export function prLabel(pr: { repo?: string; number: number }, snap: OfficeSnapshot): string {
+  return pr.repo && pr.repo !== mainRepoOf(snap) ? prKey(pr) : `#${pr.number}`;
+}
+
+/** The PR a task points at (same number and repo; a task with no prRepo means the main repo). */
+export function prOfTask(snap: OfficeSnapshot, task: Pick<Task, "prNumber" | "prRepo">): PullRequest | undefined {
+  if (!task.prNumber) return undefined;
+  const main = mainRepoOf(snap);
+  const want = prKey({ repo: task.prRepo ?? main, number: task.prNumber });
+  return snap.pullRequests.find((p) => prKey({ repo: p.repo ?? main, number: p.number }) === want);
+}
 
 export interface LoggedEvent {
   n: number;
@@ -101,7 +117,7 @@ function reduce(snap: OfficeSnapshot, e: OfficeEvent): OfficeSnapshot {
     case "task.removed":
       return { ...snap, tasks: snap.tasks.filter((t) => t.id !== e.taskId) };
     case "pr.updated":
-      return { ...snap, pullRequests: upsert(snap.pullRequests, e.pr, (p) => p.number === e.pr.number) };
+      return { ...snap, pullRequests: upsert(snap.pullRequests, e.pr, (p) => prKey(p) === prKey(e.pr)) };
     case "env.updated":
       return { ...snap, environments: upsert(snap.environments, e.env, (x) => x.name === e.env.name) };
     case "env.removed":
