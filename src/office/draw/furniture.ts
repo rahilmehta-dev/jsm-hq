@@ -8,7 +8,7 @@ export function plant(p: Pen, cx: number, baseY: number, big = true) {
   const r = big ? 7 : 5;
   p.rect(cx - 4, baseY - 7, 9, 7, C.ink);
   p.rect(cx - 3, baseY - 6, 7, 5, C.pot);
-  p.rect(cx - 3, baseY - 6, 7, 1, "#d4704f");
+  p.rect(cx - 3, baseY - 6, 7, 1, "#b8a99a");
   p.rect(cx + 2, baseY - 5, 1, 4, C.potD);
   disc(p, cx, baseY - 7 - r, r + 1, C.ink);
   disc(p, cx, baseY - 7 - r, r, C.leafD);
@@ -61,9 +61,9 @@ export function workDesk(p: Pen, dx: number, dy: number, prop: number) {
   p.rect(dx + 42, dy + 11, 1, 2, C.ink);
   if (prop % 3 === 0) {
     // rubber duck
-    p.rect(dx + 5, dy + 9, 5, 4, C.yellow);
-    p.rect(dx + 8, dy + 8, 3, 2, C.yellow);
-    p.rect(dx + 11, dy + 9, 2, 1, C.orange);
+    p.rect(dx + 5, dy + 9, 5, 4, "#d8cfae");
+    p.rect(dx + 8, dy + 8, 3, 2, "#d8cfae");
+    p.rect(dx + 11, dy + 9, 2, 1, "#a89a78");
     p.rect(dx + 9, dy + 8, 1, 1, C.ink);
   } else if (prop % 3 === 1) {
     // small plant
@@ -71,12 +71,12 @@ export function workDesk(p: Pen, dx: number, dy: number, prop: number) {
     p.rect(dx + 6, dy + 5, 3, 6, C.leaf);
     p.rect(dx + 5, dy + 7, 1, 2, C.leaf);
     p.rect(dx + 9, dy + 6, 1, 2, C.leaf);
-    p.rect(dx + 7, dy + 4, 1, 1, C.pink);
+    p.rect(dx + 7, dy + 4, 1, 1, "#d4b3b8");
   } else {
     // book stack
-    p.rect(dx + 4, dy + 12, 8, 2, C.red);
-    p.rect(dx + 5, dy + 10, 7, 2, C.blue);
-    p.rect(dx + 4, dy + 8, 7, 2, C.green);
+    p.rect(dx + 4, dy + 12, 8, 2, "#b08a84");
+    p.rect(dx + 5, dy + 10, 7, 2, "#8ea3b3");
+    p.rect(dx + 4, dy + 8, 7, 2, "#93ad9a");
   }
   monitorFrame(p, dx + 13, dy - 6);
 }
