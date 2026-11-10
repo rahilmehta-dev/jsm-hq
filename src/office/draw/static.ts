@@ -3,7 +3,8 @@
 import { officeSign } from "../../data/names";
 import type { HqConfig } from "../../data/types";
 import { mulberry32 } from "../../lib/random";
-import { text, textW } from "../engine/font";
+import { soften } from "../../theme/tokens";
+import { PLATE, text, textW } from "../engine/font";
 import { C } from "../engine/palette";
 import { box, CanvasPen, disc, ellipse, line, makeCanvas } from "../engine/pen";
 import type { OfficeLayout } from "../layout/layout";
@@ -114,10 +115,11 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
   // section signs: each CLI's own part of the room, local models in theirs
   for (const s of l.sections) {
     const w = s.w * 16 - 6;
-    p.rect(s.x0 * 16 + 2, 14 * 16 - 20, w, 3, s.color);
+    const accent = soften(s.color, 0.35);
+    p.rect(s.x0 * 16 + 2, 14 * 16 - 20, w, 3, accent);
     const cx = s.x0 * 16 + 2 + w / 2;
-    box(p, Math.round(cx - textW(s.label) / 2) - 5, 14 * 16 - 33, textW(s.label) + 10, 12, s.color);
-    text(p, s.label, Math.round(cx - textW(s.label) / 2), 14 * 16 - 30, C.white);
+    box(p, Math.round(cx - textW(s.label) / 2) - 5, 14 * 16 - 33, textW(s.label) + 10, 12, PLATE.fill, PLATE.line);
+    text(p, s.label, Math.round(cx - textW(s.label) / 2), 14 * 16 - 30, PLATE.ink);
   }
 
   // lead carpet

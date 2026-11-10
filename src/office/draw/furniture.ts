@@ -1,6 +1,6 @@
 // Furniture and decor drawn once into the static layer.
 
-import { text, textW } from "../engine/font";
+import { PLATE, text, textW } from "../engine/font";
 import { C } from "../engine/palette";
 import { box, disc, ellipse, type Pen } from "../engine/pen";
 
@@ -45,8 +45,8 @@ export function monitorFrame(p: Pen, mx: number, my: number) {
 
 export function plate(p: Pen, label: string, cx: number, y: number) {
   const w = textW(label);
-  box(p, Math.round(cx - w / 2) - 3, y, w + 6, 8, C.white);
-  text(p, label, Math.round(cx - w / 2), y + 1, C.ink);
+  box(p, Math.round(cx - w / 2) - 3, y, w + 6, 8, PLATE.fill, PLATE.line);
+  text(p, label, Math.round(cx - w / 2), y + 1, PLATE.ink);
 }
 
 /** Desk with a monitor, keyboard and mug. `dx, dy` = top-left of the desk area. */

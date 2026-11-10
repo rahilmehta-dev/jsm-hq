@@ -70,7 +70,7 @@ export class OfficeScene {
     this.camera = new Camera(
       this.world,
       () => ({ w: this.app.screen.width, h: this.app.screen.height }),
-      () => ({ left: 312, top: 74, bottom: 16, right: useUi.getState().drawer ? 552 : 16 }),
+      () => ({ left: 312, top: 44, bottom: 16, right: useUi.getState().drawer ? 552 : 16 }),
       () => this.reducedMotion,
     );
 

@@ -1,7 +1,7 @@
 // 3×5 bitmap font for in-world signs and tags.
 
 import { C } from "./palette";
-import type { Pen } from "./pen";
+import { box, type Pen } from "./pen";
 
 const FONT: Record<string, string[]> = {
   A: [".#.", "#.#", "###", "#.#", "#.#"], B: ["##.", "#.#", "##.", "#.#", "##."], C: [".##", "#..", "#..", "#..", ".##"], D: ["##.", "#.#", "#.#", "#.#", "##."],
@@ -48,12 +48,22 @@ export function text(p: Pen, str: string, x: number, y: number, color: string, s
   }
 }
 
-/** Small tag: text on a plate, centred on cx. */
-export function tag(p: Pen, str: string, cx: number, y: number, bg: string = C.ink, fg: string = C.white) {
+/** Plate colours: solid white, black outline, black text (21:1). Never translucent. */
+export const PLATE = { fill: "#ffffff", line: "#000000", ink: "#000000" } as const;
+
+/**
+ * Small tag: black text on a solid white plate with a 1px black outline, centred on cx.
+ * `accent` (an agent or status colour) shows as a 2px swatch on the plate's left edge, so identity
+ * survives without ever being the text colour. `_legacyBg` is ignored (kept so existing callers compile): no coloured plates.
+ */
+export function tag(p: Pen, str: string, cx: number, y: number, _legacyBg?: string, accent?: string) {
   const w = textW(str);
-  const x = Math.round(cx - w / 2);
-  p.rect(x - 2, y - 1, w + 4, 7, bg);
-  text(p, str, x, y, fg);
+  if (accent === C.white) accent = undefined;
+  const sw = accent ? 3 : 0;
+  const x = Math.round(cx - (w + sw) / 2) + sw;
+  box(p, x - 3 - sw, y - 2, w + 6 + sw, 9, PLATE.fill, PLATE.line);
+  if (accent) p.rect(x - 2 - sw, y - 1, 2, 7, accent);
+  text(p, str, x, y, PLATE.ink);
 }
 
 /** Clips a label to fit `maxPx` wide. */

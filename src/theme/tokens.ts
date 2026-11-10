@@ -113,3 +113,10 @@ export function shade(hex: string, amount: number): string {
   const b = ch(n & 255);
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
+
+/** Pulls a colour toward neutral gray (amount 0..1): for decorative accents that shouldn't shout. */
+export function soften(hex: string, amount: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const ch = (v: number) => Math.round(v + (Math.round(0.3 * ((n >> 16) & 255) + 0.59 * ((n >> 8) & 255) + 0.11 * (n & 255)) - v) * amount);
+  return `#${((ch((n >> 16) & 255) << 16) | (ch((n >> 8) & 255) << 8) | ch(n & 255)).toString(16).padStart(6, "0")}`;
+}

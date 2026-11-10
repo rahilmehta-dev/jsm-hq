@@ -7,7 +7,7 @@ import { Sprite, type Container } from "pixi.js";
 import type { ProjectWorkerKind, RoomHandoff, RoomWorkerState, RoomWorkerStatus } from "../../data/types";
 import { robotSprites } from "../draw/robots";
 import { drawScreen } from "../draw/live";
-import { text, textW } from "../engine/font";
+import { PLATE, text, textW } from "../engine/font";
 import { C } from "../engine/palette";
 import { box, ellipse, type Pen } from "../engine/pen";
 import type { OfficeLayout, Pavilion, ProjectStation, PxRect } from "../layout/layout";
@@ -209,6 +209,6 @@ function bubble(p: Pen, cx: number, y: number, t: number, error: boolean) {
 function noteTag(p: Pen, cx: number, y: number, note: string, error: boolean) {
   const label = note.toUpperCase().slice(0, 26);
   const w = textW(label);
-  box(p, Math.round(cx - w / 2) - 3, y, w + 6, 9, error ? "#ffd0dc" : C.white);
-  text(p, label, Math.round(cx - w / 2), y + 1, C.ink);
+  box(p, Math.round(cx - w / 2) - 3, y, w + 6, 9, error ? "#f6cfcf" : PLATE.fill, PLATE.line);
+  text(p, label, Math.round(cx - w / 2), y + 1, PLATE.ink);
 }
