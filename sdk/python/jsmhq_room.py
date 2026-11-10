@@ -15,24 +15,31 @@ nothing shows in the office.
     with room.working("fetcher", "Fetching 12 emails"):
         emails = fetch_emails()
     room.handoff("writer", frm="fetcher")  # an envelope flies to the writer
+
+When My HQ has several project rooms, say which one is yours: Room(room="job-referrals") or the
+HQ_ROOM_ID environment variable (a room's id is a slug of its name). With one room you can leave it out.
 """
 
 import contextlib
 import json
 import os
+import urllib.parse
 import urllib.request
 
 __all__ = ["Room"]
 
 
 class Room:
-    def __init__(self, url=None, token=None, timeout=1.0):
+    def __init__(self, url=None, token=None, timeout=1.0, room=None):
         self.url = (url or os.environ.get("HQ_ROOM_URL") or "http://127.0.0.1:7420").rstrip("/")
         self.token = token or os.environ.get("HQ_ROOM_TOKEN", "")
         self.timeout = timeout
+        self.room = room or os.environ.get("HQ_ROOM_ID") or None  # which project room; optional with a single room
 
-    def _call(self, method, path, body=None):
+    def _call(self, method, path, body=None, scoped=True):
         try:
+            if scoped and self.room:
+                path += "?" + urllib.parse.urlencode({"room": self.room})
             req = urllib.request.Request(
                 self.url + path,
                 data=None if body is None else json.dumps(body).encode(),
@@ -46,8 +53,13 @@ class Room:
 
     def setup(self, name, workers, demo=False):
         """Creates or replaces the room. workers: [{"id", "name", "kind": fetcher|writer|sender|custom, "color"?}].
-        demo=False stops the demo animation (real events drive the room)."""
+        demo=False stops the demo animation (real events drive the room). With a room id set, that room is
+        replaced (even under a new name); otherwise the room is found by the name."""
         return self._call("PUT", "/room", {"name": name, "workers": workers, **({} if demo else {"demo": False})})
+
+    def rooms(self):
+        """Every project room in My HQ ({"rooms": [...]}), or None if My HQ isn't there."""
+        return self._call("GET", "/rooms", scoped=False)
 
     def status(self, worker, state="working", note=None, ttl=None):
         """Tells My HQ what a worker is doing: state is idle, working, error or done. It holds for `ttl`

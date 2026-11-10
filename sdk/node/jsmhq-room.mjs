@@ -6,16 +6,21 @@
 //   await room.setup("Job referrals", [{ id: "fetcher", name: "Mailbot", kind: "fetcher" }]);
 //   await room.working("fetcher", "Fetching 12 emails", async () => fetchEmails());
 //   await room.handoff("writer", "fetcher");
+//
+// When My HQ has several project rooms, say which one is yours: new Room({ room: "job-referrals" }) or the
+// HQ_ROOM_ID env var (a room's id is a slug of its name). With one room you can leave it out.
 
 export class Room {
-  constructor({ url = process.env.HQ_ROOM_URL || "http://127.0.0.1:7420", token = process.env.HQ_ROOM_TOKEN || "", timeoutMs = 1000 } = {}) {
+  constructor({ url = process.env.HQ_ROOM_URL || "http://127.0.0.1:7420", token = process.env.HQ_ROOM_TOKEN || "", timeoutMs = 1000, room = process.env.HQ_ROOM_ID || "" } = {}) {
     this.url = url.replace(/\/+$/, "");
     this.token = token;
     this.timeoutMs = timeoutMs;
+    this.room = room;
   }
 
-  async #call(method, path, body) {
+  async #call(method, path, body, scoped = true) {
     try {
+      if (scoped && this.room) path += `?room=${encodeURIComponent(this.room)}`;
       const res = await fetch(this.url + path, {
         method,
         headers: { Authorization: `Bearer ${this.token}`, "Content-Type": "application/json" },
@@ -31,6 +36,11 @@ export class Room {
   /** Creates or replaces the room. workers: [{ id, name, kind: "fetcher"|"writer"|"sender"|"custom", color? }]. */
   setup(name, workers, { demo = false } = {}) {
     return this.#call("PUT", "/room", { name, workers, ...(demo ? {} : { demo: false }) });
+  }
+
+  /** Every project room in My HQ ({ rooms: [...] }), or null if My HQ isn't there. */
+  rooms() {
+    return this.#call("GET", "/rooms", undefined, false);
   }
 
   /** state: "idle" | "working" | "error" | "done". Holds for ttl seconds (default 120, 8 for done), then idle. */
