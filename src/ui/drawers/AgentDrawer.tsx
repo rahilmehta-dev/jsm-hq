@@ -16,9 +16,7 @@ export function AgentDrawer({ id, initialTab }: { id: string; initialTab?: Agent
   if (!snap || !agent || !status) {
     return (
       <>
-        <DrawerHeader>
-          <b>Agent removed</b>
-        </DrawerHeader>
+        <DrawerHeader title="Agent removed" />
       </>
     );
   }
@@ -27,11 +25,10 @@ export function AgentDrawer({ id, initialTab }: { id: string; initialTab?: Agent
 
   return (
     <>
-      <DrawerHeader>
+      <DrawerHeader title={agent.name}>
         <Portrait color={agent.color} lead={agent.isLead} size={36} />
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <b className="text-[18px]">{agent.name}</b>
             <StateChip state={status.state} />
           </div>
           <div className="truncate font-term text-[17px] text-muted">
@@ -44,7 +41,7 @@ export function AgentDrawer({ id, initialTab }: { id: string; initialTab?: Agent
         <AccessCard request={access} agent={agent} />
       ) : (
         status.note && (
-          <div className={`border-b border-line px-3 py-1.5 text-[14px] ${status.state === "needs-input" ? "bg-[#ffe1ea] text-red" : "bg-cream-2"}`}>
+          <div className={`border-b border-line px-3 py-1.5 text-[14px] ${status.state === "needs-input" ? "bg-bad-fill text-red" : "bg-cream-2"}`}>
             {status.note}
             {status.state === "needs-input" && <span className="ml-2 text-muted">— answer in the terminal and press Enter</span>}
           </div>
@@ -129,7 +126,7 @@ function BlockedRequests({ agent }: { agent: AgentConfig }) {
   };
   const shown = open ? approvals : approvals.slice(0, 3);
   return (
-    <div className="border-b border-line bg-[#fff1d6] px-3 py-1.5 text-[13px]">
+    <div className="border-b border-line bg-warn-fill px-3 py-1.5 text-[13px]">
       <div className="flex items-center gap-2">
         <b className="flex-1">
           Blocked by the sandbox · {approvals.length}
@@ -155,10 +152,10 @@ function BlockedRequests({ agent }: { agent: AgentConfig }) {
             <span className="min-w-0 flex-1 truncate font-term text-[16px]" title={`${a.title ?? a.host} — ${a.detail}`}>
               {a.title ?? a.host}
             </span>
-            <button className="btn px-1.5 text-[11px]" disabled={busy} onClick={() => act(a.id, "allow")}>
+            <button className="btn px-1.5 text-[12px]" disabled={busy} onClick={() => act(a.id, "allow")}>
               Allow
             </button>
-            <button className="btn px-1.5 text-[11px]" disabled={busy} onClick={() => act(a.id, "dismiss")}>
+            <button className="btn px-1.5 text-[12px]" disabled={busy} onClick={() => act(a.id, "dismiss")}>
               Dismiss
             </button>
           </li>
@@ -176,8 +173,8 @@ function BlockedRequests({ agent }: { agent: AgentConfig }) {
 /** The agent asked (request_access) to reach a domain its sandbox blocks. */
 function AccessCard({ request, agent }: { request: AccessRequest; agent: AgentConfig }) {
   return (
-    <div className="border-b border-line bg-[#ffe1ea] px-3 py-2">
-      <div className="text-[14px] text-red">
+    <div className="border-b border-line bg-bad-fill px-3 py-2">
+      <div className="text-[14px] text-ink">
         <b>{agent.name}</b> wants to reach <b className="font-term text-[17px]">{request.domain}</b>
       </div>
       <div className="mb-2 text-[13px] text-muted">“{request.reason}”</div>
@@ -233,14 +230,14 @@ function NotRunning({ agent, status }: { agent: AgentConfig; status: AgentStatus
   const setup = useOffice((st) => st.snap?.setup);
   const blocked = agent.mode === "sandbox" ? !setup?.sandboxReady : !setup?.localReady;
   return (
-    <div className="grid h-full place-items-center bg-navy-2 p-6 text-center text-[#dfe6ff]">
+    <div className="grid h-full place-items-center bg-well p-6 text-center text-[#dfe6ff]">
       <div className="max-w-[380px]">
         {s.state === "starting" ? (
           <p className="blink font-term text-[22px]">{s.detail ?? "Starting…"}</p>
         ) : (
           <>
             <p className="mb-2 font-term text-[22px]">{s.state === "failed" ? `${agent.name} could not start` : `${agent.name} isn't running`}</p>
-            {s.detail && <pre className="mb-3 whitespace-pre-wrap border-2 border-red px-2 py-1 text-left font-term text-[16px] text-[#ffd0dc]">{s.detail}</pre>}
+            {s.detail && <pre className="mb-3 whitespace-pre-wrap border-2 border-bad-fill px-2 py-1 text-left font-term text-[16px] text-[#ffd0dc]">{s.detail}</pre>}
             <p className="mb-4 text-[13px] text-[#9aa6d1]">
               {agent.mode === "sandbox"
                 ? `Start runs ${CLI_LABEL[agent.cli]} in a Docker Sandbox on this agent's own copy of the repo.`
@@ -486,7 +483,7 @@ function MessagesTab({ snap, agent }: { snap: OfficeSnapshot; agent: AgentConfig
           Send
         </button>
       </form>
-      <p className="bg-cream px-2 pb-1.5 text-[11px] text-muted">
+      <p className="bg-cream px-2 pb-1.5 text-[12px] text-muted">
         {running ? "Delivered now if idle, otherwise when the current turn ends." : `${agent.name} isn't running; it's delivered after Start.`}
       </p>
     </div>

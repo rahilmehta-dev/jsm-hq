@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { DRAWER_DEFAULT, ui, useUi } from "../../store/ui";
+import { TitleBar } from "../kit";
 import { AgentDrawer } from "./AgentDrawer";
 import { BoardsDrawer } from "./BoardsDrawer";
 import { EnvironmentDrawer } from "./EnvironmentDrawer";
@@ -8,14 +9,15 @@ import { PrDrawer } from "./PrDrawer";
 import { ActionItemsDrawer } from "./ActionItemsDrawer";
 import { TerminalDrawer } from "./TerminalDrawer";
 
-export function DrawerHeader({ children }: { children: ReactNode }) {
+const DEFAULT_TITLE = { prs: "Pull requests", actions: "Action items", boards: "Boards", terminal: "Terminal", env: "Environment", agent: "Agent" } as const;
+
+/** Title bar (close box left, zoom box right) over an optional sub-header row for the drawer's own summary. */
+export function DrawerHeader({ title, children }: { title?: ReactNode; children?: ReactNode }) {
+  const kind = useUi((s) => s.drawer?.kind);
   return (
-    <div className="flex items-center gap-2.5 border-b border-line px-3 py-2">
-      <div className="flex min-w-0 flex-1 items-center gap-2.5">{children}</div>
-      <MaximizeButton />
-      <button className="btn px-2.5" aria-label="Close" onClick={() => ui.closeDrawer()}>
-        ✕
-      </button>
+    <div className="shrink-0">
+      <TitleBar title={title ?? (kind ? DEFAULT_TITLE[kind] : "")} onClose={() => ui.closeDrawer()} right={<MaximizeButton />} />
+      {children && <div className="flex items-center gap-2.5 border-b border-ink px-3 py-2">{children}</div>}
     </div>
   );
 }
@@ -24,16 +26,9 @@ function MaximizeButton() {
   const max = useUi((s) => s.drawerMaximized);
   const label = max ? "Restore size" : "Maximize";
   return (
-    <button className="btn grid h-[30px] w-[34px] place-items-center px-0" aria-label={label} title={label} aria-pressed={max} onClick={() => ui.toggleDrawerMaximized()}>
-      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5">
-        {max ? (
-          <>
-            <rect x="1" y="4" width="9" height="9" rx="1.5" />
-            <path d="M4 4V1h9v9h-3" />
-          </>
-        ) : (
-          <rect x="1" y="1" width="12" height="12" rx="2" />
-        )}
+    <button className="titlebar-box" aria-label={label} title={label} aria-pressed={max} onClick={() => ui.toggleDrawerMaximized()}>
+      <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1">
+        {max ? <rect x="2" y="2" width="4" height="4" /> : <rect x="0.5" y="0.5" width="7" height="7" />}
       </svg>
     </button>
   );
@@ -74,7 +69,7 @@ function ResizeHandle() {
       onPointerCancel={up}
       onDoubleClick={() => ui.setDrawerWidth(DRAWER_DEFAULT)}
     >
-      <div className="my-auto h-12 w-[4px] rounded-full bg-ink opacity-0 transition-opacity group-hover:opacity-60" />
+      <div className="my-auto h-12 w-[4px] bg-ink opacity-0 transition-opacity group-hover:opacity-60" />
     </div>
   );
 }
@@ -90,7 +85,7 @@ export function DrawerHost() {
   if (drawer?.kind === "boards")
     return (
       <div
-        className="fixed inset-0 z-30 grid place-items-center bg-[rgba(31,36,33,0.35)] backdrop-blur-[2px] p-4"
+        className="fixed inset-0 z-30 grid place-items-center bg-black/30 p-4"
         role="dialog"
         aria-modal="true"
         aria-label="Boards"
@@ -116,7 +111,7 @@ export function DrawerHost() {
           animate={{ x: 0 }}
           exit={reduce ? { opacity: 0 } : { x: "110%" }}
           transition={{ duration: reduce ? 0 : 0.28, ease: [0.3, 0, 0.2, 1] }}
-          className={`panel fixed bottom-4 right-4 top-[74px] z-20 flex flex-col ${maximized ? "left-4" : ""}`}
+          className={`panel fixed bottom-4 right-4 top-[44px] z-20 flex flex-col ${maximized ? "left-4" : ""}`}
           style={maximized ? undefined : { width: `min(${width}px, calc(100vw - 32px))` }}
           aria-label="Details"
         >

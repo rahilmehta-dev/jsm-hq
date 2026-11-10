@@ -27,16 +27,16 @@ export function PrDrawer() {
             · {ago(pr.openedAt, now)} ago
             {!pr.merged && <> · {pr.openComments} open comment{pr.openComments === 1 ? "" : "s"}{pr.conflict ? " · merge conflict" : ""}</>}
           </div>
-          {pr.reviewNote && !pr.merged && <div className="text-[12px] text-[#a35d00]">{pr.reviewNote}</div>}
+          {pr.reviewNote && !pr.merged && <div className="text-[12px] text-orange">{pr.reviewNote}</div>}
         </div>
         <div className="flex flex-col items-end gap-1">
           <ReviewChip review={pr.review} merged={pr.merged} />
           {pr.url ? (
-            <a className="btn px-1.5 text-[11px]" href={pr.url} target="_blank" rel="noreferrer">
+            <a className="btn px-1.5 text-[12px]" href={pr.url} target="_blank" rel="noreferrer">
               Open on GitHub ↗
             </a>
           ) : (
-            <button className="btn px-1.5 text-[11px]" disabled title="Demo data has no GitHub link">
+            <button className="btn px-1.5 text-[12px]" disabled title="Demo data has no GitHub link">
               Open on GitHub
             </button>
           )}
@@ -48,7 +48,6 @@ export function PrDrawer() {
   return (
     <>
       <DrawerHeader>
-        <b className="text-[18px]">Pull requests</b>
         <span className="truncate text-[14px] text-muted">
           Review: {wf.review.enabled ? reviewToolLabel[wf.review.tool] : "off"} · Merge: {wf.merge.by === "lead" ? "the lead" : "you"}
         </span>

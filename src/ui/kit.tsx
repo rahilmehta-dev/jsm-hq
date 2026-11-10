@@ -23,6 +23,17 @@ export function ReviewChip({ review, merged }: { review: ReviewState; merged?: b
   );
 }
 
+/** Classic Mac window title bar: pinstripes, optional close box on the left, title plate in the middle. */
+export function TitleBar({ title, onClose, right }: { title: ReactNode; onClose?: () => void; right?: ReactNode }) {
+  return (
+    <div className="titlebar">
+      {onClose ? <button className="titlebar-box" aria-label="Close" onClick={onClose} /> : <span className="titlebar-spacer" />}
+      <span className="titlebar-title">{title}</span>
+      {right ?? <span className="titlebar-spacer" />}
+    </div>
+  );
+}
+
 /** Pixel robot portrait drawn from the same sprite as the office. */
 export function Portrait({ color, lead, size = 40 }: { color: string; lead: boolean; size?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
