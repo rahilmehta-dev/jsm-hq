@@ -4,15 +4,18 @@ import { ui, useUi } from "../../store/ui";
 
 const SPEEDS: SimSpeed[] = [1, 2, 4];
 
+/** Flat, monochrome Happy-Mac face. */
 function Logo() {
   return (
-    <svg className="h-[20px] w-[20px] shrink-0" viewBox="0 0 10 10" shapeRendering="crispEdges" aria-hidden>
-      <rect x="1" y="1" width="8" height="8" fill="#1f2421" />
-      <rect x="2" y="2" width="6" height="6" fill="#3f8f5a" />
-      <rect x="3" y="3" width="1" height="2" fill="#fff6e9" />
-      <rect x="6" y="3" width="1" height="2" fill="#fff6e9" />
-      <rect x="3" y="6" width="4" height="1" fill="#1d2b53" />
-      <rect x="4" y="0" width="2" height="1" fill="#ffec27" />
+    <svg className="h-[20px] w-[20px] shrink-0" viewBox="0 0 12 12" shapeRendering="crispEdges" aria-hidden>
+      <rect x="1" y="0" width="10" height="11" fill="#000" />
+      <rect x="2" y="1" width="8" height="6" fill="#fff" />
+      <rect x="4" y="2" width="1" height="2" fill="#000" />
+      <rect x="7" y="2" width="1" height="2" fill="#000" />
+      <rect x="4" y="5" width="1" height="1" fill="#000" />
+      <rect x="5" y="6" width="2" height="1" fill="#000" />
+      <rect x="7" y="5" width="1" height="1" fill="#000" />
+      <rect x="3" y="8" width="6" height="1" fill="#fff" />
     </svg>
   );
 }

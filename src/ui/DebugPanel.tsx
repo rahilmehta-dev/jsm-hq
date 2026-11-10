@@ -18,7 +18,7 @@ function JsonNode({ name, value, depth }: { name: string; value: unknown; depth:
   return (
     <details open={depth < 1} className="pl-3">
       <summary className="cursor-pointer text-[#dfe6ff]">
-        {name} <span className="text-[#66729f]">{Array.isArray(value) ? `[${entries.length}]` : `{${entries.length}}`}</span>
+        {name} <span className="text-[#9aa6d1]">{Array.isArray(value) ? `[${entries.length}]` : `{${entries.length}}`}</span>
       </summary>
       {entries.map(([k, v]) => (
         <JsonNode key={k} name={k} value={v} depth={depth + 1} />
@@ -57,13 +57,13 @@ function summary(e: OfficeEvent): string {
 function Rooms({ snap }: { snap: import("../data/types").OfficeSnapshot }) {
   const rooms = projectRoomsOf(snap.config);
   const scoped = rooms.length > 1;
-  if (!rooms.length) return <div className="text-[#66729f]">No project rooms.</div>;
+  if (!rooms.length) return <div className="text-[#9aa6d1]">No project rooms.</div>;
   return (
     <>
       {rooms.map((r) => (
         <div key={r.id} className="mb-2">
           <div className="text-[#dfe6ff]">
-            {r.name} <span className="text-[#66729f]">#{r.id} · demo {r.demo === false ? "off" : "on"}</span>
+            {r.name} <span className="text-[#9aa6d1]">#{r.id} · demo {r.demo === false ? "off" : "on"}</span>
           </div>
           {r.workers.map((w) => {
             const key = roomWorkerKey(r.id, w.id, scoped);
@@ -73,25 +73,25 @@ function Rooms({ snap }: { snap: import("../data/types").OfficeSnapshot }) {
               <div key={key} className="truncate pl-3">
                 <span className="text-[#9aa6d1]">{key}</span>{" "}
                 {st ? (
-                  <span className={age !== null && age > st.ttl ? "text-[#66729f]" : "text-yellow"}>
+                  <span className={age !== null && age > st.ttl ? "text-[#9aa6d1]" : "text-yellow"}>
                     {st.state}
                     {st.note ? `: ${st.note}` : ""} · {age}s ago · ttl {st.ttl}s{age !== null && age > st.ttl ? " (expired)" : ""}
                   </span>
                 ) : (
-                  <span className="text-[#66729f]">no report</span>
+                  <span className="text-[#9aa6d1]">no report</span>
                 )}
               </div>
             );
           })}
         </div>
       ))}
-      <div className="text-[#66729f]">Recent hand-offs</div>
+      <div className="text-[#9aa6d1]">Recent hand-offs</div>
       {(snap.roomHandoffs ?? []).slice(0, 8).map((h) => (
         <div key={h.id} className="truncate pl-3 text-[#dfe6ff]">
           {h.from ?? "in-tray"} → {h.to ?? "out-tray"}
         </div>
       ))}
-      {!snap.roomHandoffs?.length && <div className="pl-3 text-[#66729f]">none yet</div>}
+      {!snap.roomHandoffs?.length && <div className="pl-3 text-[#9aa6d1]">none yet</div>}
     </>
   );
 }
@@ -146,11 +146,11 @@ export function DebugPanel() {
       <div className="scroll-thin min-h-0 flex-1 overflow-auto p-2">
         {tab === "events" ? (
           <>
-            <div className="mb-1 text-[#66729f]">Last 20 events · {chunks} terminal chunks streamed</div>
+            <div className="mb-1 text-[#9aa6d1]">Last 20 events · {chunks} terminal chunks streamed</div>
             <ul>
               {events.map((x) => (
                 <li key={x.n} className="truncate">
-                  <span className="text-[#66729f]">{new Date(x.at).toLocaleTimeString()} </span>
+                  <span className="text-[#9aa6d1]">{new Date(x.at).toLocaleTimeString()} </span>
                   <span className="text-yellow">{x.event.type}</span> <span className="text-[#dfe6ff]">{summary(x.event)}</span>
                 </li>
               ))}
