@@ -10,7 +10,7 @@
 
 One **lead** agent plans the work and hands out tasks. Each **worker** gets its own desk, its own copy of your repo and its own Docker Sandbox, then opens a pull request. You see it all happen: the plan on the wall, agents at their desks, PRs moving through review.
 
-Agents run **Claude Code**, **Codex**, **Gemini CLI** or **Antigravity CLI** (Local mode only). Everything runs on your machine.
+Agents run **Claude Code**, **Codex**, **Gemini CLI** or **Antigravity CLI**. Everything runs on your machine.
 
 ## Why use it
 

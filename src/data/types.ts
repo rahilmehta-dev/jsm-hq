@@ -39,9 +39,6 @@ export const DEFAULT_OLLAMA_URL = "http://localhost:11434";
 /** Only Claude Code and Codex can run on a local Ollama model. */
 export const supportsOllama = (cli: AgentCli) => cli === "claude" || cli === "codex";
 
-/** Docker Sandboxes has no Antigravity agent, so Antigravity CLI runs in Local mode only. */
-export const supportsSandbox = (cli: AgentCli) => cli !== "antigravity";
-
 /** Narrows untrusted input (a UI message, an edited config) to a known CLI. */
 export const isAgentCli = (v: unknown): v is AgentCli => typeof v === "string" && Object.hasOwn(CLI_LABEL, v);
 

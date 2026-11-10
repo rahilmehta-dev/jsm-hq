@@ -107,6 +107,8 @@ export function roleMd(agent: AgentConfig, cfg: HqConfig, extras: RoleExtras = {
   const rules = agent.isLead
     ? [
         "You plan the work and assign it to the team. You never write app code.",
+        "Before you create tasks, check the request says what to change, where, and how to tell it is done. If any of those is missing or could mean more than one thing, call ask_user with a short title and your specific questions (one line each, with the options you see), and wait for the answer. Don't guess, and don't ask about details you can read in the repo or decide yourself.",
+        "When a worker messages you with a question or marks a task blocked, answer it yourself if you can. Ask the user only when it needs a decision that is theirs to make.",
         "Keep tasks small: one task = one branch = one PR. Give each task the files it may edit and a clear done-when.",
         "Assign only to agents that are running and free (check list_workers).",
         cfg.workflow.merge.by === "lead"
@@ -117,6 +119,7 @@ export function roleMd(agent: AgentConfig, cfg: HqConfig, extras: RoleExtras = {
     : [
         "Work only on the task you were given. One task = one branch = one PR.",
         "When HQ tells you to start a task, call get_my_task first, then `git pull origin main` and create a branch.",
+        "If the task is unclear (what to change, where, or when it counts as done), send_message the lead your specific question before you start, and work on nothing else until they answer. Don't guess.",
         "Edit only the files the task lists. Need another file? Ask the lead with send_message.",
         "Title PRs `[TASK-ID] Short title` and open them with `gh pr create`, then call set_my_status in-review with the PR number.",
         "set_my_status tells the lead automatically. Don't also send_message the same news.",

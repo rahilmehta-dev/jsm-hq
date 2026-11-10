@@ -1,6 +1,6 @@
 // Browser commands → server actions. Names match OfficeDataSource methods.
 
-import { DEFAULT_OLLAMA_URL, isAgentCli, supportsOllama, supportsSandbox, SERVICE_KEYS, type AgentCli, type AgentConfig, type AgentPatch, type ReviewTool, type WelcomeInput, type NewMcpServer, type Board, type NewAgentInput, type ProjectConfig, type RemoveAgentOptions, type SandboxSettings, type SetupCheckId, type WorkflowPatch } from "../src/data/types";
+import { DEFAULT_OLLAMA_URL, isAgentCli, supportsOllama, SERVICE_KEYS, type AgentCli, type AgentConfig, type AgentPatch, type ReviewTool, type WelcomeInput, type NewMcpServer, type Board, type NewAgentInput, type ProjectConfig, type RemoveAgentOptions, type SandboxSettings, type SetupCheckId, type WorkflowPatch } from "../src/data/types";
 import { LEAD_NAME, OFFICE_NAME_MAX } from "../src/data/names";
 import { STACK_CATEGORIES, stackSkills, stackTool, type StackChoice, type StackConfig } from "../src/data/stack";
 import { resolveAccess } from "./access";
@@ -92,7 +92,7 @@ export function makeCommands(hub: Hub, sessions: Sessions, planner: Planner, inb
       const agent = newAgent(id, name, str(input.role, 40).trim() || "Developer", color, false);
       agent.cli = isAgentCli(input.cli) ? input.cli : "claude";
       agent.model = str(input.model, 60).trim();
-      agent.mode = input.mode === "local" || !supportsSandbox(agent.cli) ? "local" : "sandbox";
+      agent.mode = input.mode === "local" ? "local" : "sandbox";
       if (input.provider === "ollama" && supportsOllama(agent.cli)) {
         agent.provider = "ollama";
         agent.ollamaModel = str(input.ollamaModel, 100).trim();
@@ -127,7 +127,6 @@ export function makeCommands(hub: Hub, sessions: Sessions, planner: Planner, inb
       }
       if (typeof p.ollamaModel === "string") agent.ollamaModel = str(p.ollamaModel, 100).trim();
       if (!supportsOllama(agent.cli)) delete agent.provider;
-      if (!supportsSandbox(agent.cli)) agent.mode = "local"; // Docker Sandboxes has no agent for this CLI
       if (Array.isArray(p.skills)) agent.skills = p.skills.map((s) => str(s, 60)).filter(Boolean);
       if (p.workspacePath !== undefined) agent.workspacePath = p.workspacePath ? str(p.workspacePath, 500).trim() || null : null;
       hub.configChanged();
@@ -267,7 +266,6 @@ export function makeCommands(hub: Hub, sessions: Sessions, planner: Planner, inb
         used.add(id);
         const agent = newAgent(id, clean, isLead ? "Lead" : str(role, 40).trim() || "Developer", agentPalette[used.size - 1] ?? agentPalette[0], isLead);
         agent.cli = agentCli;
-        if (!supportsSandbox(agentCli)) agent.mode = "local";
         return agent;
       };
       const lead = make(input.lead?.name ?? LEAD_NAME, "Lead", cli(input.lead?.cli), true);

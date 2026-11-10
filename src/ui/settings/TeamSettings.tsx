@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { nextAgentName } from "../../data/names";
-import { CLI_LABEL, DEFAULT_OLLAMA_URL, supportsOllama, supportsSandbox, WORKER_KIND_LABEL, type AgentCli, type AgentConfig, type AgentMode, type ModelProvider, type ProjectRoomConfig, type ProjectWorkerKind } from "../../data/types";
+import { CLI_LABEL, DEFAULT_OLLAMA_URL, supportsOllama, WORKER_KIND_LABEL, type AgentCli, type AgentConfig, type AgentMode, type ModelProvider, type ProjectRoomConfig, type ProjectWorkerKind } from "../../data/types";
 import { officeActions, useOffice } from "../../store/office";
 import { agentPalette } from "../../theme/tokens";
 import { Field, Portrait, SectionTitle } from "../kit";
@@ -18,7 +18,6 @@ export function CliSelect({ value, onChange }: { value: AgentCli; onChange: (v: 
     </select>
   );
 }
-const SANDBOX_REASON = "Antigravity CLI runs in Local mode only: Docker Sandboxes has no agent for it.";
 export const ROLE_SUGGESTIONS = ["Developer", "QA", "Designer", "Docs", "DevOps", "Security"];
 
 export function TeamSettings() {
@@ -68,10 +67,8 @@ function AgentRow({ agent, expanded, onToggle, onRemove }: { agent: AgentConfig;
           <CliSelect value={agent.cli} onChange={(cli) => set({ cli })} />
         </Field>
         <Field label="Runs in">
-          <select className="field" value={agent.mode} title={SANDBOX_REASON} onChange={(e) => set({ mode: e.target.value as AgentMode })}>
-            <option value="sandbox" disabled={!supportsSandbox(agent.cli)}>
-              Sandbox
-            </option>
+          <select className="field" value={agent.mode} onChange={(e) => set({ mode: e.target.value as AgentMode })}>
+            <option value="sandbox">Sandbox</option>
             <option value="local">Local</option>
           </select>
         </Field>
@@ -92,7 +89,6 @@ function AgentRow({ agent, expanded, onToggle, onRemove }: { agent: AgentConfig;
       {agent.mode === "local" && (
         <div className="border-t-2 border-dashed border-cream-3 px-3 py-1 text-[12px] text-muted">
           Local mode runs plain <code>{agent.cli}</code> in the agent's own folder. Permission prompts stay on.
-          {!supportsSandbox(agent.cli) && ` ${SANDBOX_REASON}`}
         </div>
       )}
       {expanded && (
@@ -279,11 +275,10 @@ function AddAgent() {
   const [role, setRole] = useState("Developer");
   const [cli, setCli] = useState<AgentCli>("claude");
   const [mode, setMode] = useState<AgentMode>("sandbox");
-  const effectiveMode = supportsSandbox(cli) ? mode : "local";
   const team = useOffice((s) => s.snap?.config.team) ?? [];
   const suggested = nextAgentName(team.map((a) => a.name));
   const add = () => {
-    officeActions.addAgent({ name: name.trim() || suggested, role, cli, mode: effectiveMode });
+    officeActions.addAgent({ name: name.trim() || suggested, role, cli, mode });
     setName("");
   };
   return (
@@ -306,10 +301,8 @@ function AddAgent() {
           <CliSelect value={cli} onChange={setCli} />
         </Field>
         <Field label="Runs in">
-          <select className="field" value={effectiveMode} title={SANDBOX_REASON} onChange={(e) => setMode(e.target.value as AgentMode)}>
-            <option value="sandbox" disabled={!supportsSandbox(cli)}>
-              Sandbox
-            </option>
+          <select className="field" value={mode} onChange={(e) => setMode(e.target.value as AgentMode)}>
+            <option value="sandbox">Sandbox</option>
             <option value="local">Local</option>
           </select>
         </Field>
@@ -319,7 +312,6 @@ function AddAgent() {
       </form>
       <p className="mt-2 text-[12px] text-muted">
         HQ starts a new sandbox with the lead's network policy and allows it to reach HQ at host.docker.internal.
-        {!supportsSandbox(cli) && ` ${SANDBOX_REASON}`}
       </p>
       <datalist id="codex-models">
         <option value="gpt-5.6-sol" />

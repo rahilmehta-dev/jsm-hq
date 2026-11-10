@@ -203,7 +203,7 @@ async function checkGemini(): Promise<Check> {
 }
 
 async function checkAntigravity(): Promise<Check> {
-  const base = { id: "antigravity" as const, label: "Antigravity CLI (for Antigravity agents, Local mode only)", neededFor: "local" as const };
+  const base = { id: "antigravity" as const, label: "Antigravity CLI (for Local mode)", neededFor: "local" as const };
   const v = await run("agy", ["--version"], { timeoutMs: 8000 });
   if (v.ok) return { ...base, status: "ok", detail: v.stdout.trim().split("\n").pop() ?? "", fix: null };
   const cmd = os === "win32" ? "irm https://antigravity.google/cli/install.ps1 | iex" : "curl -fsSL https://antigravity.google/cli/install.sh | bash";

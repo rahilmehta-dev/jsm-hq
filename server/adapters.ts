@@ -12,6 +12,10 @@ import { claudeOllamaEnv, ollamaUrlFor, usesOllama } from "./ollama";
 export interface Launch {
   sbxAgent: string; // agent name for `sbx run`
   args: string[]; // the CLI's own arguments (not shell-quoted)
+  /** Arguments for `sbx run` when they differ from `args` (a CLI that runs inside sbx's generic shell agent). */
+  sbxArgs?: string[];
+  /** Hosts the sandbox needs beyond HQ itself, allowed in the sandbox network policy before it starts. */
+  policyHosts?: string[];
   /** Extra environment for the agent's process (for example a local model provider). */
   env?: Record<string, string>;
 }
@@ -187,6 +191,25 @@ const ANTIGRAVITY_HOOK_NAME = "jsm-hq";
  * agent as working when a Stop hook continues the turn.
  */
 const ANTIGRAVITY_EVENTS: Record<string, string> = { SessionStart: "SessionStart", PreInvocation: "UserPromptSubmit", PreToolUse: "PreToolUse", PostToolUse: "PostToolUse", Stop: "Stop" };
+/** What a sandbox runs for Antigravity: installs agy once (the sandbox keeps it), then starts it with the arguments given. */
+const ANTIGRAVITY_SANDBOX_START = [
+  "set -o pipefail",
+  'export PATH="$HOME/.local/bin:$PATH"',
+  "command -v agy >/dev/null || { curl -fsSL https://antigravity.google/cli/install.sh | bash; } || { echo 'Could not install the Antigravity CLI in this sandbox.'; exec bash -l; }",
+  'exec agy "$@"',
+].join("; ");
+/**
+ * Hosts the Antigravity install and sign-in need. The installer fetches its release manifest from a
+ * Google Cloud Run service, so its address is part of the policy; the rest are the CLI's own endpoints.
+ */
+const ANTIGRAVITY_SANDBOX_HOSTS = [
+  "antigravity.google",
+  "antigravity-cli-auto-updater-974169037036.us-central1.run.app",
+  "storage.googleapis.com",
+  "oauth2.googleapis.com",
+  "daily-cloudcode-pa.googleapis.com",
+  "aicode.googleapis.com",
+];
 /** Antigravity truncates a rule file past 24,000 bytes. */
 const ANTIGRAVITY_RULE_LIMIT = 24_000;
 
@@ -243,11 +266,16 @@ const antigravity: CliAdapter = {
     excludeFromGit(dir, [ANTIGRAVITY_HOOKS, ANTIGRAVITY_MCP, ANTIGRAVITY_RULES, HOOK_SCRIPT]);
   },
   launch(agent) {
-    // Models are named by label ("Gemini 3.8 Flash"). Local mode only, so there is no sbx agent.
+    // Models are named by label ("Gemini 3.8 Flash").
     const model = agent.model.trim() && !/^default$/i.test(agent.model.trim()) ? agent.model.trim() : null;
     // --settings applies to this session only and is never saved, so the user's own settings.json is
     // untouched. It lets the agent use HQ's tools without an approval prompt for each call.
-    return { sbxAgent: "", args: ["--settings", JSON.stringify({ permissions: { allow: ["mcp(hq/*)"] } }), ...(model ? ["--model", model] : [])] };
+    const args = ["--settings", JSON.stringify({ permissions: { allow: ["mcp(hq/*)"] } }), ...(model ? ["--model", model] : [])];
+    // Docker Sandboxes has no Antigravity agent, so it runs in sbx's generic `shell` agent, which
+    // takes bash's own arguments: install agy on the first start, then replace the shell with it.
+    // Inside the sandbox it doesn't ask before each command, as the built-in sbx agents don't: the VM
+    // and its network policy are the boundary. Local mode keeps its prompts (see `args`).
+    return { sbxAgent: "shell", args, sbxArgs: ["-lc", ANTIGRAVITY_SANDBOX_START, "_", ...args, "--dangerously-skip-permissions"], policyHosts: ANTIGRAVITY_SANDBOX_HOSTS };
   },
 };
 

@@ -8,7 +8,7 @@ import { homedir } from "node:os";
 import { stackSkills } from "../src/data/stack";
 import { hasHqSkills, prepareSkills } from "./skills";
 import { resolve, sep } from "node:path";
-import { CLI_LABEL, HOST_TERMINAL, supportsSandbox, type AgentCli, type AgentConfig, type SetupCheckId, type WorkspaceInfo } from "../src/data/types";
+import { CLI_LABEL, HOST_TERMINAL, type AgentCli, type AgentConfig, type SetupCheckId, type WorkspaceInfo } from "../src/data/types";
 import { adapters, localBinary } from "./adapters";
 import { findModel, ollamaBaseUrl, ollamaPolicyTargets, ollamaStatus, usesOllama } from "./ollama";
 import type { Hub } from "./hub";
@@ -96,7 +96,6 @@ export class Sessions {
       hub.activity("session", id, `${agent.name} could not start: ${detail.split("\n")[0]}`);
     };
     if (!setup.checks.find((c) => c.id === "tmux" && c.status === "ok")) return fail("tmux is not installed. See the setup checklist.");
-    if (agent.mode === "sandbox" && !supportsSandbox(agent.cli)) return fail(`${CLI_LABEL[agent.cli]} can't run in a Docker Sandbox (Docker Sandboxes has no agent for it). Switch this agent to Local mode.`);
     if (agent.mode === "sandbox" && !setup.sandboxReady) return fail("Docker Sandboxes isn't ready on this machine. Finish the setup checklist, or switch this agent to Local mode.");
     const check = (cid: string) => setup.checks.find((c) => c.id === cid)?.status;
     if (agent.mode === "local" && agent.cli === "claude" && check("claude") !== "ok") return fail("Claude Code isn't installed. See the setup checklist.");
@@ -137,7 +136,7 @@ export class Sessions {
           hub.activity("session", id, `${agent.name}'s env file isn't loaded in Local mode on Windows. Use Sandbox mode for app variables.`);
         if (agent.mode === "sandbox") {
           hub.setSession(id, { detail: "Allowing the sandbox to reach HQ…" });
-          await this.ensurePolicy(usesOllama(agent) ? ollamaPolicyTargets(hub.snap.config) : []);
+          await this.ensurePolicy([...(usesOllama(agent) ? ollamaPolicyTargets(hub.snap.config) : []), ...(launch.policyHosts ?? [])]);
           hub.setSession(id, { detail: "Starting sandbox…" });
           // sbx only accepts a size when it creates the sandbox; an existing (stopped) one keeps its size,
           // and passing --cpus/--memory again makes `sbx run` fail. "Recreate sandbox" applies a new size.
@@ -145,7 +144,8 @@ export class Sessions {
           const isNew = !(await this.sandboxExists(name));
           const size = !isNew ? [] : [...(cpus ? ["--cpus", String(cpus)] : []), ...(memoryGb ? ["--memory", `${Math.round(memoryGb * 1024)}m`] : [])];
           const env = [...(envFile ? ["--env-file", envFile] : []), "-e", `BROWSER=${SANDBOX_BROWSER}`, ...Object.entries(launch.env ?? {}).flatMap(([k, v]) => ["-e", `${k}=${v}`])];
-          const args = launch.args.length ? ["--", ...launch.args] : [];
+          const sbxArgs = launch.sbxArgs ?? launch.args;
+          const args = sbxArgs.length ? ["--", ...sbxArgs] : [];
           spec = { file: "sbx", args: ["run", "--name", name, ...size, ...env, launch.sbxAgent, dir, ...args], envFile: null };
         }
         await this.backend.create(name, dir, spec, { cols: 200, rows: 50 });
