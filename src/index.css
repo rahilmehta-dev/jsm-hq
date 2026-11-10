@@ -41,6 +41,12 @@
   --color-pink: #ff77a8;
   --color-grass: #4a8f3d;
 
+  /* Status fills (ink text on these is >= 14:1) and the dark terminal well. */
+  --color-warn-fill: #f5e2b8;
+  --color-bad-fill: #f6cfcf;
+  --color-ok-fill: #cfe9d5;
+  --color-well: #101418;
+
   --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-term: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
 
@@ -194,6 +200,82 @@ html[data-font] .font-term {
     border-radius: 2px;
     padding: 0 5px;
     background: #fff;
+  }
+  /* Window title bar: System 7 pinstripes, close box left, title on a plate that breaks the stripes. */
+  .titlebar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 22px;
+    padding: 0 6px;
+    border-bottom: 1px solid #000;
+    background: repeating-linear-gradient(to bottom, #fff 0 1px, #000 1px 2px, #fff 2px 3px);
+    background-size: 100% 12px;
+    background-position: 0 5px;
+    background-repeat: no-repeat;
+    background-color: var(--color-platinum);
+    flex-shrink: 0;
+  }
+  .titlebar-title {
+    margin: 0 auto;
+    padding: 0 10px;
+    background: var(--color-platinum);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 20px;
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .titlebar-box,
+  .titlebar-spacer {
+    flex: none;
+    width: 14px;
+    height: 14px;
+  }
+  .titlebar-box {
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid #000;
+    background: #fff;
+    cursor: pointer;
+    color: #000;
+  }
+  .titlebar-box:hover,
+  .titlebar-box:active,
+  .titlebar-box[aria-pressed="true"] {
+    background: #000;
+    color: #fff;
+  }
+  .titlebar-box:focus-visible {
+    outline: 2px solid var(--color-select);
+    outline-offset: 2px;
+  }
+  /* Menu bar items: plain text, inverted when pressed or hovered. */
+  .menubar {
+    background: #fff;
+    border-bottom: 1px solid #000;
+  }
+  .menu-item {
+    cursor: pointer;
+    padding: 2px 10px;
+    font-size: 13px;
+    font-weight: 500;
+    background: transparent;
+    border: 0;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .menu-item:hover,
+  .menu-item[aria-pressed="true"] {
+    background: #000;
+    color: #fff;
+  }
+  .menu-item:focus-visible {
+    outline: 2px solid var(--color-select);
+    outline-offset: 1px;
   }
   /* Textures */
   .dither {

@@ -24,7 +24,6 @@ export function ActionItemsDrawer() {
   return (
     <>
       <DrawerHeader>
-        <b className="text-[18px]">Action items</b>
         <span className="text-[13px] text-muted">{a.total ? `${a.total} waiting on you` : "Nothing waiting on you"}</span>
       </DrawerHeader>
       <div className="scroll-thin min-h-0 flex-1 overflow-y-auto p-4">
@@ -118,7 +117,7 @@ function Item({ item, from, now }: { item: ActionItem; from?: { id: string; name
     <li className={`rounded-xl border border-line bg-white px-3 py-2 shadow-sm ${item.waiting ? "outline outline-2 outline-orange" : ""}`}>
       <div className="flex items-start gap-2">
         <b className="flex-1 text-[15px]">{item.title}</b>
-        {item.waiting && <span className="chip shrink-0 text-[11px]" style={{ background: "#fff1d6" }}>waiting</span>}
+        {item.waiting && <span className="chip shrink-0 text-[12px]" style={{ background: "#f5e2b8" }}>waiting</span>}
       </div>
       <div className="mb-1 flex items-center gap-1.5 text-[12px] text-muted">
         {from && <Dot color={from.color} size={8} />}

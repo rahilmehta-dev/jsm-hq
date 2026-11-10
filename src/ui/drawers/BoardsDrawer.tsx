@@ -6,11 +6,11 @@ import { Dot } from "../kit";
 import { DrawerHeader } from "./Drawer";
 
 const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
-  { id: "todo", label: "To do", color: "#83769c" },
-  { id: "in-progress", label: "Doing", color: "#29adff" },
-  { id: "in-review", label: "Review", color: "#ffa300" },
-  { id: "done", label: "Done", color: "#00e436" },
-  { id: "blocked", label: "Blocked", color: "#ff004d" },
+  { id: "todo", label: "To do", color: "#5c5c5c" },
+  { id: "in-progress", label: "Doing", color: "#1b6ca8" },
+  { id: "in-review", label: "Review", color: "#946000" },
+  { id: "done", label: "Done", color: "#1d7a3a" },
+  { id: "blocked", label: "Blocked", color: "#b3261e" },
 ];
 
 const STATUS_LABEL: Record<BoardStatus, string> = { active: "Active", planned: "Planned", done: "Done" };
@@ -29,13 +29,12 @@ export function BoardsDrawer({ initialBoardId }: { initialBoardId?: string }) {
   return (
     <>
       <DrawerHeader>
-        <b className="text-[18px]">Boards</b>
         <span className="text-[14px] text-muted">{boards.length} in {snap.config.project.name}</span>
       </DrawerHeader>
       <div className="flex flex-wrap gap-1.5 border-b border-line px-3 py-2">
         {boards.map((b) => (
           <button key={b.id} className="btn px-2 text-[13px]" aria-pressed={b.id === boardId} onClick={() => setBoardId(b.id)}>
-            {b.status === "active" && <span className="mr-1 text-blue">●</span>}
+            {b.status === "active" && <span className="mr-1 text-select">●</span>}
             {b.title}
           </button>
         ))}
@@ -60,7 +59,7 @@ export function BoardsDrawer({ initialBoardId }: { initialBoardId?: string }) {
           </button>
         </div>
       )}
-      <div className="scroll-thin grid min-h-0 flex-1 auto-cols-[minmax(200px,1fr)] grid-flow-col gap-2 overflow-auto bg-[#f7f3ea] p-3">
+      <div className="scroll-thin grid min-h-0 flex-1 auto-cols-[minmax(200px,1fr)] grid-flow-col gap-2 overflow-auto bg-cream-2 p-3">
         {cols.map((c) => {
           const list = tasks.filter((t) => t.status === c.id);
           if (c.id === "done") list.reverse();
@@ -89,7 +88,7 @@ function TaskCard({ task }: { task: Task }) {
   const workers = snap?.config.team.filter((a) => !a.isLead) ?? [];
   const blockedBy = task.needs.filter((n) => snap?.tasks.find((t) => t.id === n)?.status !== "done");
   return (
-    <div className={`rounded-lg border border-line px-2 py-1.5 shadow-sm ${task.status === "done" ? "bg-[#e8e1d2] text-muted" : "bg-white"}`}>
+    <div className={`rounded-[4px] border border-ink px-2 py-1.5 ${task.status === "done" ? "bg-platinum text-ink-2" : "bg-white"}`}>
       <div className="font-term text-[16px] leading-none text-muted">
         {task.id}
         {task.prNumber && <span className="ml-1.5">{snap ? prLabel({ repo: task.prRepo, number: task.prNumber }, snap) : `#${task.prNumber}`}</span>}
