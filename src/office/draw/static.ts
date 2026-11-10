@@ -18,29 +18,52 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
   const bw = l.W * 16; // building px
   const bh = l.H * 16;
 
-  // ------------------------------------------------ lawn, path, trees
+  // ------------------------------------------------ lawn, courtyard garden, paths, trees
   p.rect(0, 0, l.worldW, l.worldH, C.grass);
-  for (let i = 0; i < (l.worldW * l.worldH) / 260; i++) {
+  for (let y = 0; y < l.worldH; y += 32) p.rect(0, y, l.worldW, 16, C.grassD, 0.35); // mown stripes
+  for (let i = 0; i < (l.worldW * l.worldH) / 700; i++) {
     const x = Math.floor(R() * l.worldW);
     const y = Math.floor(R() * l.worldH);
-    const c = R() < 0.55 ? C.grassD : C.grassL;
-    p.rect(x, y, 1, 2, c);
-    p.rect(x + 1, y + 1, 1, 1, c);
+    p.rect(x, y, 1, 2, R() < 0.5 ? C.grassD : C.grassL);
   }
-  for (let i = 0; i < 70; i++) p.rect(Math.floor(R() * l.worldW), Math.floor(R() * l.worldH), 1, 1, pick([C.pink, C.yellow, C.white]));
   const doorY = l.oy + l.door[1] * 16;
-  p.rect(0, doorY, l.ox, 16, C.path);
-  for (let i = 0; i < 20; i++) p.rect(Math.floor(R() * (l.ox - 2)), doorY + Math.floor(R() * 15), 2, 1, C.pathD);
-  p.rect(l.ox + bw, l.oy + 6, 5, bh, C.shadow, 0.25);
-  p.rect(l.ox + 6, l.oy + bh, bw, 4, C.shadow, 0.25);
-  for (let x = 20; x < l.worldW - 10; x += 70 + Math.floor(R() * 50)) {
-    tree(p, x, 18 + Math.floor(R() * 6), 12 + Math.floor(R() * 3));
-    tree(p, x + 20, l.worldH - 22 + Math.floor(R() * 6), 12 + Math.floor(R() * 3));
+  const cy = l.courtyard;
+  // soft building shadow on the lawn
+  p.rect(l.ox + bw, l.oy + 6, 5, bh, C.shadow, 0.18);
+  p.rect(l.ox + 6, l.oy + bh, bw, 4, C.shadow, 0.18);
+  // courtyard: stone paving, a lawn in hedges, a tree, planters and benches
+  p.rect(cy.x, cy.y, cy.w, cy.h, C.stone);
+  for (let y = cy.y; y < cy.y + cy.h; y += 8) p.rect(cy.x, y, cy.w, 1, C.stoneD, 0.5);
+  for (let y = cy.y, r = 0; y < cy.y + cy.h; y += 8, r++) for (let x = cy.x + (r % 2) * 8; x < cy.x + cy.w; x += 16) p.rect(x, y, 1, 8, C.stoneD, 0.5);
+  const gx = cy.x + 14;
+  const gw = cy.w - 28;
+  const gy = cy.y + 18;
+  const gh = cy.h - 36;
+  p.rect(gx - 3, gy - 3, gw + 6, gh + 6, C.shadow, 0.18);
+  p.rect(gx, gy, gw, gh, C.grassL);
+  for (let y = gy; y < gy + gh; y += 12) p.rect(gx, y, gw, 6, C.grass, 0.5);
+  hedge(p, gx - 6, gy - 6, gw + 12, 7);
+  hedge(p, gx - 6, gy + gh - 1, gw + 12, 7);
+  hedge(p, gx - 6, gy - 6, 7, gh + 12);
+  hedge(p, gx + gw - 1, gy - 6, 7, gh + 12);
+  tree(p, gx + gw / 2, gy + gh / 2 - 6, 13);
+  for (let y = gy + 20; y < gy + gh - 12; y += 52) if (Math.abs(y - (doorY - 8)) > 24) {
+    planter(p, gx + 10, y);
+    planter(p, gx + gw - 10, y);
   }
-  for (let y = 60; y < l.worldH - 40; y += 80 + Math.floor(R() * 40)) {
-    if (Math.abs(y - doorY) > 30) tree(p, 18 + Math.floor(R() * 6), y, 13);
-    tree(p, l.worldW - 22 + Math.floor(R() * 6), y + 20, 13);
+  // stone path from the entrance door out across the courtyard to the campus edge
+  p.rect(cy.x - 16, doorY - 4, l.ox - cy.x + 16, 24, C.path);
+  p.rect(cy.x - 16, doorY - 4, l.ox - cy.x + 16, 1, C.pathD);
+  p.rect(cy.x - 16, doorY + 19, l.ox - cy.x + 16, 1, C.pathD);
+  for (let x = cy.x - 16 + 12; x < l.ox; x += 24) p.rect(x, doorY - 3, 1, 22, C.pathD, 0.7);
+  // trees around the edges of the campus
+  const bush = (x: number, y: number) => hedge(p, x, y, 22, 9);
+  for (let x = 28; x < l.worldW - 10; x += 78 + Math.floor(R() * 40)) {
+    tree(p, x, 14 + Math.floor(R() * 5), 12 + Math.floor(R() * 3));
+    if (x > cy.x + cy.w) tree(p, x + 20, l.worldH - 20 + Math.floor(R() * 5), 12 + Math.floor(R() * 3));
   }
+  for (let y = 70; y < l.worldH - 40; y += 90 + Math.floor(R() * 40)) tree(p, l.worldW - 20 + Math.floor(R() * 4), y + 20, 13);
+  for (let x = l.ox + 24; x < l.ox + bw - 40; x += 120) bush(x, l.oy + bh + 12);
 
   g.save();
   g.translate(l.ox, l.oy);
@@ -58,7 +81,7 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
     const off = (j % 3) * 16;
     p.rect(16, y, mainPx, 1, C.woodD);
     for (let x = 16 - off; x < mainPx; x += 48) {
-      p.rect(x + 1, y + 1, 47, 7, pick([C.wood, "#c4895a", "#cf9563", C.wood]));
+      p.rect(x + 1, y + 1, 47, 7, pick([C.wood, "#d6c6aa", "#e2d4ba", C.wood]));
       p.rect(x, y, 1, 8, C.woodLine);
       if (R() < 0.12) p.rect(x + 10 + Math.floor(R() * 28), y + 3, 2, 1, C.woodLine);
     }
@@ -119,7 +142,7 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
   const pr = l.projectRoom;
   if (pr) {
     const fx = pr.x0 * 16;
-    for (let ty = 64; ty < bh - 16; ty += 8) for (let tx = 0; tx < pr.w * 2; tx++) p.rect(fx + tx * 8, ty, 8, 8, (tx + ty / 8) % 2 ? "#e4d4c1" : "#efe3d3");
+    for (let ty = 64; ty < bh - 16; ty += 8) for (let tx = 0; tx < pr.w * 2; tx++) p.rect(fx + tx * 8, ty, 8, 8, (tx + ty / 8) % 2 ? "#e6e1d6" : "#f0ece4");
     // a rug under each worker's desk, in the worker's color
     for (const s of pr.stations) {
       p.rect(s.rect.x - l.ox + 4, s.rect.y - l.oy + 22, s.rect.w - 8, 50, s.color, 0.22);
@@ -145,16 +168,18 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
   p.rect(0, 15, bw, 1, C.wallTopL);
   p.rect(0, 16, mainPx, 48, C.wall);
   for (let y = 18; y < 44; y += 4) for (let x = y % 8 ? 2 : 0; x < mainPx; x += 4) p.rect(x, y, 1, 1, C.wallL);
-  p.rect(0, 44, mainPx, 1, "#7aa597");
+  p.rect(0, 44, mainPx, 1, "#ffffff");
   p.rect(0, 45, mainPx, 15, C.wallD);
-  for (let x = 8; x < mainPx; x += 16) p.rect(x, 47, 1, 11, "#365a50");
+  for (let x = 8; x < mainPx; x += 16) p.rect(x, 47, 1, 11, "#d6d2c9");
   p.rect(0, 60, bw, 4, C.base);
-  p.rect(0, 60, bw, 1, "#8a6450");
+  p.rect(0, 60, bw, 1, "#d4cfc4");
   if (pr) {
     const wx = pr.wallX * 16;
     const ww = (pr.w + 1) * 16;
-    p.rect(wx, 16, ww, 44, "#8a5a6e");
-    for (let x = wx; x < wx + ww; x += 8) p.rect(x, 16, 1, 44, "#6e4558");
+    p.rect(wx, 16, ww, 44, C.glass);
+    p.rect(wx, 16, ww, 6, C.sage);
+    for (let x = wx; x < wx + ww; x += 24) p.rect(x, 22, 2, 38, C.metalL);
+    for (let x = wx + 6; x < wx + ww - 8; x += 24) line(p, x, 56, x + 9, 28, "#ffffff");
     const label = pr.name.toUpperCase().slice(0, 22);
     box(p, wx + ww / 2 - textW(label) / 2 - 3, 3, textW(label) + 6, 9, C.ink);
     text(p, label, wx + ww / 2 - textW(label) / 2, 5, C.white);
@@ -174,10 +199,13 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
   p.rect(bw - 16, 16, 1, bh - 32, C.wallTopL);
   p.rect(0, bh - 16, bw, 16, C.wallTop);
   p.rect(16, bh - 16, bw - 32, 1, C.wallTopL);
+  p.rect(16, bh - 13, bw - 32, 9, C.glass, 0.85);
+  for (let x = 16; x < bw - 16; x += 32) p.rect(x, bh - 13, 2, 9, C.metalL);
   // door (left wall)
-  p.rect(0, doorY - l.oy, 16, 16, C.wood);
-  p.rect(0, doorY - l.oy - 3, 20, 3, C.deskDD);
-  p.rect(0, doorY - l.oy + 16, 20, 3, C.deskDD);
+  p.rect(0, doorY - l.oy, 16, 16, C.glass);
+  p.rect(7, doorY - l.oy, 2, 16, C.metalL);
+  p.rect(0, doorY - l.oy - 3, 20, 3, C.metalD);
+  p.rect(0, doorY - l.oy + 16, 20, 3, C.metalD);
   // the wall between the office and the project room, with a doorway
   if (pr) {
     const wx = pr.wallX * 16;
@@ -188,7 +216,7 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
     p.rect(wx + 15, dy0 + 32, 1, bh - 16 - (dy0 + 32), C.wallTopL);
     p.rect(wx, dy0 - 3, 16, 3, C.deskDD); // door frame
     p.rect(wx, dy0 + 32, 16, 3, C.deskDD);
-    p.rect(wx, dy0, 16, 32, "#e4d4c1");
+    p.rect(wx, dy0, 16, 32, "#ece8e0");
   }
   // glass wall
   if (sr) {
@@ -218,13 +246,13 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
     text(p, h, cx + (35 - textW(h)) / 2 + 1, B.y + 2, C.ink);
     p.rect(cx + 3, B.y + 8, 30, 1, col);
   });
-  box(p, 208, 22, 80, 24, C.desk);
-  p.rect(209, 23, 78, 1, C.woodL);
+  box(p, 208, 22, 80, 24, C.sage);
+  p.rect(209, 23, 78, 1, C.sageL);
   // Office name: big letters when it fits the 80px sign, small ones when it's longer.
   const sign = officeSign(config.project.officeName);
   const ss = textW(sign, 2) <= 76 ? 2 : 1;
-  text(p, sign, 249 - textW(sign, ss) / 2, ss === 2 ? 30 : 33, C.ink, ss);
-  text(p, sign, 248 - textW(sign, ss) / 2, ss === 2 ? 29 : 32, C.white, ss);
+  text(p, sign, 249 - textW(sign, ss) / 2, ss === 2 ? 30 : 33, "#2f4a39", ss);
+  text(p, sign, 248 - textW(sign, ss) / 2, ss === 2 ? 29 : 32, "#ffffff", ss);
   box(p, 180, 22, 22, 26, C.navy);
   p.rect(189, 27, 4, 9, C.white);
   p.rect(190, 26, 2, 1, C.red);
@@ -237,14 +265,14 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
 
   // ------------------------------------------------ lead corner
   box(p, 288, 30, 32, 44, C.deskD);
-  p.rect(290, 32, 28, 40, "#6e4630");
+  p.rect(290, 32, 28, 40, "#e6e2d9");
   for (let s = 0; s < 3; s++) {
     const sy = 34 + s * 13;
     p.rect(290, sy + 10, 28, 2, C.deskD);
     for (let bx = 291; bx < 316; ) {
       const w = 2 + Math.floor(R() * 3);
       const h = 7 + Math.floor(R() * 3);
-      p.rect(bx, sy + 10 - h, w, h, pick([C.red, C.blue, C.green, C.yellow, C.pink, C.peach, C.lav]));
+      p.rect(bx, sy + 10 - h, w, h, pick(BOOKS));
       bx += w + (R() < 0.2 ? 2 : 0);
     }
   }
@@ -264,9 +292,9 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
   }
   // stand-up corner
   plant(p, 24, 76);
-  beanbag(p, 56, 136, "#e05a47", "#b8443a");
-  beanbag(p, 136, 136, "#3fa7a0", "#2f817c");
-  beanbag(p, 88, 168, "#f2b33d", "#c88d22");
+  beanbag(p, 56, 136, "#c9bfae", "#b2a794");
+  beanbag(p, 136, 136, "#8fb3a0", "#789d8a");
+  beanbag(p, 88, 168, "#d9cfae", "#c2b78f");
   box(p, 18, 172, 13, 12, C.metal);
   p.rect(20, 174, 9, 2, C.ink);
   p.rect(21, 170, 7, 3, C.white);
@@ -360,4 +388,25 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
   }
   g.restore();
   return canvas;
+}
+
+const BOOKS = ["#9db8a4", "#b9c6d6", "#d9cfae", "#c9bfae", "#e0c7c0", "#a8b7a0", "#cfd6dc"];
+
+/** A rounded, clipped hedge: dark base, lighter top edge, a few leaf flecks. */
+function hedge(p: CanvasPen, x: number, y: number, w: number, h: number) {
+  p.rect(x + 1, y + h, w, 2, C.shadow, 0.2);
+  p.rect(x, y, w, h, C.hedgeD);
+  p.rect(x + 1, y + 1, w - 2, h - 2, C.hedge);
+  p.rect(x + 1, y + 1, w - 2, 1, C.hedgeL);
+  for (let i = 0; i < (w * h) / 14; i++) p.rect(x + 2 + ((i * 7) % Math.max(1, w - 4)), y + 2 + ((i * 5) % Math.max(1, h - 4)), 1, 1, i % 3 ? C.hedgeL : C.hedgeD);
+}
+
+/** A white planter box with a small clipped shrub. */
+function planter(p: CanvasPen, cx: number, cy: number) {
+  p.rect(cx - 6, cy + 6, 14, 3, C.shadow, 0.2);
+  p.rect(cx - 7, cy + 1, 14, 8, C.pot);
+  p.rect(cx - 7, cy + 7, 14, 2, C.potD);
+  disc(p, cx, cy - 2, 7, C.hedgeD);
+  disc(p, cx - 1, cy - 3, 5, C.hedge);
+  p.rect(cx - 3, cy - 6, 2, 2, C.hedgeL);
 }

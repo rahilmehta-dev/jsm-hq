@@ -1,39 +1,43 @@
-// Office palette (PICO-8 flavoured). HUD-shared colours come from theme/tokens.
+// Office palette: calm corporate campus (white and warm gray surfaces, glass, soft greens).
+// Agent and status colours still come from theme/tokens so robots stay readable.
 
 import { colors } from "../../theme/tokens";
 
 export const C = {
-  ink: colors.ink,
-  grass: "#4a8f3d", grassD: "#3d7a34", grassL: "#62a84a",
-  path: "#d9c49a", pathD: "#bfa57a",
-  wood: "#c98e5b", woodD: "#b37a4a", woodL: "#d8a06c", woodLine: "#94603a",
-  wall: "#4f7a6e", wallD: "#41675c", wallL: "#5f8b7e", wallTop: "#2c3d42", wallTopL: "#4a5d61", base: "#6b4a3a",
-  wallSrv: "#3e4a5e", wallSrvD: "#323d50",
-  carpetJ: "#8e3b46", carpetJD: "#742f39",
-  rugG: "#5f8f52", rugGD: "#4e7a43", rugP: "#7a5a8e", rugPD: "#664a78",
-  tileL: "#e9dcc6", tileD: "#d3c3a8",
-  grate: "#4f4a52", grateD: "#3b373e", grateL: "#625c66",
-  part: "#8b9bb4", partD: "#6b7a94", partCap: "#c9d1de",
-  desk: "#b97a4b", deskD: "#8a5a3b", deskDD: "#5e3a26",
-  metal: "#c2c3c7", metalL: "#e4e3ea", metalD: "#8e8a96", metalDD: "#5f5a66",
-  screen: "#111d35", bezel: "#3a3f55",
-  leaf: "#38b764", leafD: "#257953", leafL: "#73d36b", pot: "#b5523b", potD: "#8a3b2a",
-  belt: "#3a3640", beltL: "#57525e", rail: "#9d98a6",
-  cork: "#c48a52", corkD: "#9b6638",
+  ink: "#3b403c",
+  grass: "#8dbb78", grassD: "#80ae6c", grassL: "#9bc986",
+  path: "#dcd8ce", pathD: "#c6c1b5",
+  wood: "#dccdb2", woodD: "#cfc0a4", woodL: "#e9dec8", woodLine: "#bfb094",
+  wall: "#f3f1ec", wallD: "#e4e1da", wallL: "#fbfaf8", wallTop: "#cfcbc2", wallTopL: "#e8e5de", base: "#bdb8ad",
+  wallSrv: "#5a666e", wallSrvD: "#4c575e",
+  carpetJ: "#d3ddd0", carpetJD: "#c4d0c1",
+  rugG: "#a9c8a0", rugGD: "#98b88f", rugP: "#e0dcd2", rugPD: "#d1ccc0",
+  tileL: "#f1efea", tileD: "#e2dfd8",
+  grate: "#6a6e72", grateD: "#575b5f", grateL: "#7b8085",
+  part: "#cfe3ea", partD: "#a9c6d1", partCap: "#f4f8fa",
+  desk: "#ece8e0", deskD: "#d3cdc0", deskDD: "#8d887d",
+  metal: "#c9cacd", metalL: "#e9e8ec", metalD: "#92909a", metalDD: "#63606a",
+  screen: "#17233a", bezel: "#454a5c",
+  leaf: "#5fa56a", leafD: "#4a8a58", leafL: "#8cc58a", pot: "#e8e4dc", potD: "#cfc9bd",
+  belt: "#4a4a52", beltL: "#66666e", rail: "#a9a6b0",
+  cork: "#c9a27a", corkD: "#a88259",
   sky: "#8fd3ff", skyN: "#1d2b53", cloud: "#ffffff",
-  couch: "#3f7f8f", couchD: "#2f5f6b",
+  couch: "#8a9e92", couchD: "#74887c",
   red: colors.red, orange: colors.orange, yellow: colors.yellow, green: colors.green, blue: colors.blue, lav: colors.lav,
   pink: colors.pink, peach: "#ffccaa", white: colors.white, navy: colors.navy,
   rabbit: "#ff7a30", gold: "#ffcf3a",
-  shadow: "#241a2e",
+  shadow: "#2f3a33",
+  // campus extras
+  stone: "#d8d4ca", stoneD: "#c2bdb0", hedge: "#4f8f5c", hedgeD: "#3f7a4c", hedgeL: "#6aab72",
+  glass: "#cfe6ee", glassD: "#a9c9d4", sage: "#4d6b57", sageL: "#6f8e78",
 } as const;
 
 /** Floor carpet colours for desks, cycled by desk index. */
 export const deskCarpets: [string, string][] = [
-  ["#3e5f8a", "#334f75"],
-  ["#b5893a", "#9a7230"],
-  ["#4f7f5a", "#41694a"],
-  ["#7a4f7e", "#663f69"],
-  ["#8a5a3e", "#744a32"],
-  ["#3f7f8f", "#2f5f6b"],
+  ["#cfdad3", "#c1cec6"],
+  ["#ddd8c8", "#cfc9b7"],
+  ["#c9d6c3", "#bbc9b4"],
+  ["#d4d8de", "#c6cbd3"],
+  ["#dcd2c6", "#cec3b5"],
+  ["#c8d8d6", "#bacbc9"],
 ];
