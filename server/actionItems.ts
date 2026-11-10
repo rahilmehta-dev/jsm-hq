@@ -59,6 +59,20 @@ export class ActionItems {
     return item;
   }
 
+  /** A change an agent wants but may not make itself (see PROFILE_PROPOSAL_FIELDS): the user applies it in Settings → Team. */
+  propose(fromId: string, targetId: string, field: string, value: string, reason: string): ActionItem {
+    const who = this.hub.name(fromId);
+    const target = targetId === fromId ? "" : ` for ${this.hub.name(targetId)}`;
+    const v = value.trim().slice(0, 300);
+    const why = reason.trim().slice(0, 500);
+    return this.add(
+      fromId,
+      `${who} wants to change ${field}${target} to ${v}${why ? `: ${why}` : ""}`,
+      `${who} asked to change ${this.hub.name(targetId)}'s ${field} to "${v}".\nReason: ${why || "(none given)"}\nIf you agree, set it in Settings → Team → ${this.hub.name(targetId)}, then mark this done. Dismiss it to say no.`,
+      false,
+    );
+  }
+
   resolve(id: string, decision: "done" | "dismissed", note?: string) {
     const item = this.items.find((i) => i.id === id);
     if (!item || item.status !== "open") return;
