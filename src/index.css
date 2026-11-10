@@ -13,26 +13,54 @@
 @import "@xterm/xterm/css/xterm.css";
 
 @theme {
-  /* Campus HUD palette: warm whites and grays, soft green accent. The office canvas uses src/theme/tokens.ts. */
-  --color-ink: #1f2421;
-  --color-cream: #fbfaf8;
-  --color-cream-2: #f1efea;
-  --color-cream-3: #e3e0d9;
-  --color-line: #dedbd3;
-  --color-muted: #6b716c;
-  --color-accent: #3f8f5a;
+  /* Classic Mac (System 6/7 / Platinum) tokens. Mirrored in src/theme/tokens.ts; contrast.test.ts keeps them in sync. */
+  --color-paper: #ffffff;
+  --color-platinum: #dddddd;
+  --color-platinum-2: #c8c8c8;
+  --color-desk: #a8a8a8;
+  --color-ink: #000000;
+  --color-ink-2: #4d4d4d;
+  --color-select: #3a5a8c;
+  --color-select-ink: #ffffff;
+
+  /* Legacy names, remapped onto the grayscale so existing classes keep working. */
+  --color-cream: #ffffff;
+  --color-cream-2: #eeeeee;
+  --color-cream-3: #dddddd;
+  --color-line: #000000;
+  --color-muted: #4d4d4d;
+  --color-accent: #3a5a8c;
   --color-navy: #1d2b53;
   --color-navy-2: #16213f;
   --color-blue: #29adff;
-  --color-red: #ff004d;
-  --color-orange: #ffa300;
-  --color-green: #00e436;
+  --color-red: #b3261e;
+  --color-orange: #946000;
+  --color-green: #1d7a3a;
   --color-lav: #83769c;
   --color-yellow: #f6d86b;
   --color-pink: #ff77a8;
   --color-grass: #4a8f3d;
+
   --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-term: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  /* Type scale. 12px is the floor. */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 17px;
+  --text-xl: 22px;
+
+  /* Flat materials: one hard-offset shadow, no blur. */
+  --shadow-window: 2px 2px 0 #000000;
+  --radius-window: 2px;
+  --radius-control: 4px;
+}
+
+:root {
+  /* 50% checkerboard dither, 2px cells. */
+  --dither: repeating-conic-gradient(#000 0% 25%, transparent 0% 50%) 0 0 / 2px 2px;
+  --checker-desk: repeating-conic-gradient(#a8a8a8 0% 25%, #b4b4b4 0% 50%) 0 0 / 4px 4px;
 }
 
 /* Font styles (Settings → Project → Font). The office canvas and terminal keep their pixel fonts. */
@@ -60,7 +88,7 @@ html[data-font] .font-term {
   }
 
   body {
-    background: var(--color-grass);
+    background: var(--color-desk);
     color: var(--color-ink);
     font-family: var(--font-ui);
     min-width: 1280px;
@@ -73,55 +101,54 @@ html[data-font] .font-term {
 }
 
 @layer components {
-  /* Calm campus surfaces: warm white, hairline border, soft shadow, rounded corners */
+  /* Windows: 1px black frame, hard offset shadow, white paper. */
   .panel {
-    background: var(--color-cream);
-    border: 1px solid var(--color-line);
-    border-radius: 16px;
-    box-shadow:
-      0 1px 2px rgba(31, 36, 33, 0.06),
-      0 12px 32px rgba(31, 36, 33, 0.12);
+    background: var(--color-paper);
+    border: 1px solid #000;
+    border-radius: var(--radius-window);
+    box-shadow: var(--shadow-window);
     overflow: hidden;
   }
   .panel-dark {
-    background: rgba(31, 36, 33, 0.92);
-    color: var(--color-cream);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
-    box-shadow: 0 12px 32px rgba(31, 36, 33, 0.25);
+    background: #141414;
+    color: #fff;
+    border: 1px solid #000;
+    border-radius: var(--radius-window);
+    box-shadow: var(--shadow-window);
   }
   .btn {
     cursor: pointer;
-    border: 1px solid var(--color-line);
-    border-radius: 10px;
-    background: #fff;
-    padding: 3px 12px;
+    border: 1px solid #000;
+    border-radius: var(--radius-control);
+    background: var(--color-platinum);
+    color: #000;
+    padding: 4px 12px;
     font-weight: 500;
-    box-shadow: 0 1px 2px rgba(31, 36, 33, 0.06);
-    transition:
-      background-color 0.15s,
-      border-color 0.15s;
+    /* Flat bevel: two 1px solid lines, no gradient. */
+    box-shadow:
+      inset 1px 1px 0 #fff,
+      inset -1px -1px 0 #808080;
     white-space: nowrap;
   }
   .btn:hover {
-    background: var(--color-cream-2);
-    border-color: #cfcbc1;
+    background: #e8e8e8;
   }
-  .btn:active {
-    background: var(--color-cream-3);
-  }
+  .btn:active,
   .btn[aria-pressed="true"] {
-    background: #e4f1e8;
-    border-color: var(--color-accent);
-    color: #24663c;
+    background: #000;
+    color: #fff;
+    box-shadow: none;
   }
   .btn:disabled {
     cursor: not-allowed;
-    opacity: 0.5;
+    color: var(--color-ink-2);
+    background: var(--color-platinum);
+    box-shadow: none;
+    border-color: var(--color-ink-2);
   }
   .btn:focus-visible,
   .field:focus-visible {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-select);
     outline-offset: 2px;
   }
   .chip {
@@ -131,30 +158,29 @@ html[data-font] .font-term {
     font-size: 12px;
     font-weight: 500;
     padding: 1px 8px;
-    border: 1px solid rgba(31, 36, 33, 0.12);
-    border-radius: 999px;
+    border: 1px solid #000;
+    border-radius: 2px;
     background: var(--c, var(--color-cream-2));
-    color: var(--color-ink);
+    color: #000;
     white-space: nowrap;
   }
   .chip-dot::before {
     content: "";
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
-    background: var(--color-ink);
+    background: var(--m, #000);
+    border: 1px solid #000;
   }
   .field {
-    border: 1px solid var(--color-line);
-    border-radius: 10px;
+    border: 1px solid #000;
+    border-radius: var(--radius-control);
     background: #fff;
+    box-shadow: inset 1px 1px 0 #808080;
     padding: 2px 10px;
     font-size: 14px;
     width: 100%;
     min-width: 0;
-  }
-  .field:focus {
-    border-color: var(--color-accent);
   }
   /* Inputs and dropdowns share one height so labels in a row line up. */
   input.field,
@@ -164,10 +190,18 @@ html[data-font] .font-term {
   .kbd {
     font-family: var(--font-term);
     font-size: 12px;
-    border: 1px solid var(--color-line);
-    border-radius: 6px;
+    border: 1px solid #000;
+    border-radius: 2px;
     padding: 0 5px;
     background: #fff;
+  }
+  /* Textures */
+  .dither {
+    background: var(--dither);
+    opacity: 0.5;
+  }
+  .bg-desk-pattern {
+    background: var(--checker-desk);
   }
 }
 
@@ -183,8 +217,8 @@ html[data-font] .font-term {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(63, 143, 90, 0.2);
+  background: var(--color-select);
+  border: 1px solid #000;
   animation: blink 2s ease-in-out infinite;
 }
 
@@ -197,7 +231,7 @@ html[data-font] .font-term {
 
 .scroll-thin {
   scrollbar-width: thin;
-  scrollbar-color: #c4c0b6 transparent;
+  scrollbar-color: #808080 transparent;
 }
 
 .xterm {
