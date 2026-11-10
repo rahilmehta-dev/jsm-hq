@@ -135,6 +135,10 @@ export interface OfficeDataSource {
   updateProject(patch: Partial<ProjectConfig>): void;
   /** Sets the project room and its workers (null removes the room). The server cleans names, ids and colors. */
   setProjectRoom(room: ProjectRoomConfig | null): void;
+  /** Adds a project room, or replaces the one with the same id (up to 12 rooms). */
+  addProjectRoom(room: ProjectRoomConfig): void;
+  /** Removes the project room with this id. */
+  removeProjectRoom(id: string): void;
   createBoard(title: string): void;
   updateBoard(id: string, patch: Partial<Pick<Board, "title" | "status">>): void;
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { OfficeEvent } from "../data/source";
+import { projectRoomsOf, roomWorkerKey } from "../data/types";
 import { officeActions, useOffice } from "../store/office";
 import { ui, useUi } from "../store/ui";
 
@@ -52,20 +53,63 @@ function summary(e: OfficeEvent): string {
   }
 }
 
+/** Every project room: its workers' latest reports (key, state, note, age, ttl) and the recent hand-offs. */
+function Rooms({ snap }: { snap: import("../data/types").OfficeSnapshot }) {
+  const rooms = projectRoomsOf(snap.config);
+  const scoped = rooms.length > 1;
+  if (!rooms.length) return <div className="text-[#66729f]">No project rooms.</div>;
+  return (
+    <>
+      {rooms.map((r) => (
+        <div key={r.id} className="mb-2">
+          <div className="text-[#dfe6ff]">
+            {r.name} <span className="text-[#66729f]">#{r.id} · demo {r.demo === false ? "off" : "on"}</span>
+          </div>
+          {r.workers.map((w) => {
+            const key = roomWorkerKey(r.id, w.id, scoped);
+            const st = snap.roomWorkers?.[key];
+            const age = st ? Math.max(0, Math.round((Date.now() - Date.parse(st.at)) / 1000)) : null;
+            return (
+              <div key={key} className="truncate pl-3">
+                <span className="text-[#9aa6d1]">{key}</span>{" "}
+                {st ? (
+                  <span className={age !== null && age > st.ttl ? "text-[#66729f]" : "text-yellow"}>
+                    {st.state}
+                    {st.note ? `: ${st.note}` : ""} · {age}s ago · ttl {st.ttl}s{age !== null && age > st.ttl ? " (expired)" : ""}
+                  </span>
+                ) : (
+                  <span className="text-[#66729f]">no report</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      <div className="text-[#66729f]">Recent hand-offs</div>
+      {(snap.roomHandoffs ?? []).slice(0, 8).map((h) => (
+        <div key={h.id} className="truncate pl-3 text-[#dfe6ff]">
+          {h.from ?? "in-tray"} → {h.to ?? "out-tray"}
+        </div>
+      ))}
+      {!snap.roomHandoffs?.length && <div className="pl-3 text-[#66729f]">none yet</div>}
+    </>
+  );
+}
+
 export function DebugPanel() {
   const open = useUi((s) => s.debugOpen);
   const snap = useOffice((s) => s.snap);
   const events = useOffice((s) => s.events);
   const chunks = useOffice((s) => s.terminalChunks);
   const presets = useOffice((s) => s.presets);
-  const [tab, setTab] = useState<"events" | "snapshot">("events");
+  const [tab, setTab] = useState<"events" | "rooms" | "snapshot">("events");
   if (!open) return null;
 
   return (
     <section aria-label="Debug" className="panel-dark fixed bottom-4 left-[312px] z-30 flex h-[360px] w-[560px] flex-col font-term text-[16px] leading-tight">
-      <div className="flex items-center gap-2 border-b-[3px] border-ink px-2 py-1.5 font-ui text-[13px]">
+      <div className="flex items-center gap-2 border-b border-white/15 px-3 py-2 font-ui text-[13px]">
         <b className="uppercase tracking-[0.12em]">Debug</b>
-        {(["events", "snapshot"] as const).map((t) => (
+        {(["events", "rooms", "snapshot"] as const).map((t) => (
           <button key={t} className="btn px-2 text-[12px] text-ink" aria-pressed={tab === t} onClick={() => setTab(t)}>
             {t}
           </button>
@@ -112,6 +156,8 @@ export function DebugPanel() {
               ))}
             </ul>
           </>
+        ) : tab === "rooms" ? (
+          snap && <Rooms snap={snap} />
         ) : (
           snap && <JsonNode name="OfficeSnapshot" value={snap} depth={0} />
         )}
