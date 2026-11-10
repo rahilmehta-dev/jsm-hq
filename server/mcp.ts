@@ -11,7 +11,8 @@ import type { Hub } from "./hub";
 import { requestAccess } from "./access";
 import { applyProfile, PROFILE_PROPOSAL_FIELDS } from "./commands";
 import type { Planner } from "./planner";
-import { cleanProjectRoom, setRoom } from "./room";
+import { cleanProjectRoom, MAX_ROOMS, upsertRoom } from "./room";
+import { projectRoomsOf } from "../src/data/types";
 
 type Result = { content: { type: "text"; text: string }[]; isError?: boolean };
 
@@ -270,9 +271,10 @@ function buildServer(hub: Hub, planner: Planner, me: string, syncFiles: (agentId
     "setup_project_room",
     {
       description:
-        "Lead only. Give a project its own room in the office, for the project's non-AI workers (a mail fetcher, a writer on a local model, a sender…), and get what the project needs to report to it. Call it again to change the workers (it replaces the room). It returns the endpoint, the env var names, and a tiny client to copy into the project; have a worker add that client and the calls to the project's code (or do it from the task). The room token is NOT in this result and must never be written into code or committed: the project reads it from the HQ_ROOM_TOKEN env var, which the user sets (Settings → Team → Project room → copy), so ask the user for that with ask_user.",
+        "Lead only. Give a project its own room in the office, for the project's non-AI workers (a mail fetcher, a writer on a local model, a sender…), and get what the project needs to report to it. Each project has its own room, found by its id (a slug of the name): call it again with the same name (or id) to change that room's workers (it replaces that room); a new name adds another room. With several rooms, the project must say which one (HQ_ROOM_ID). It returns the endpoint, the env var names, and a tiny client to copy into the project; have a worker add that client and the calls to the project's code (or do it from the task). The room token is NOT in this result and must never be written into code or committed: the project reads it from the HQ_ROOM_TOKEN env var, which the user sets (Settings → Team → Project room → copy), so ask the user for that with ask_user.",
       inputSchema: {
         name: z.string().describe("The project's name, shown on the room's sign"),
+        id: z.string().optional().describe("The room's id, to keep it when you rename the project. Default: a slug of the name."),
         workers: z
           .array(z.object({ id: z.string().optional(), name: z.string(), kind: z.enum(["fetcher", "writer", "sender", "custom"]).optional() }))
           .min(1)
@@ -280,13 +282,16 @@ function buildServer(hub: Hub, planner: Planner, me: string, syncFiles: (agentId
         client: z.enum(["python", "node", "http"]).optional().describe("Which client to return (default python). http returns curl examples instead of a file."),
       },
     },
-    guard(({ name, workers, client }: { name: string; workers: { id?: string; name: string; kind?: "fetcher" | "writer" | "sender" | "custom" }[]; client?: "python" | "node" | "http" }) => {
+    guard(({ name, id, workers, client }: { name: string; id?: string; workers: { id?: string; name: string; kind?: "fetcher" | "writer" | "sender" | "custom" }[]; client?: "python" | "node" | "http" }) => {
       leadOnly();
       const api = hub.snap.roomApi;
       if (!api) throw new Error("The project-room API isn't running.");
-      const room = cleanProjectRoom({ name, workers });
+      const room = cleanProjectRoom({ name, id, workers });
       if (!room?.workers.length) throw new Error("Give the room at least one worker.");
-      setRoom(hub, room);
+      if (!upsertRoom(hub, room)) throw new Error(`There are already ${MAX_ROOMS} project rooms (${projectRoomsOf(hub.snap.config).map((r) => r.id).join(", ")}). Reuse one of those ids.`);
+      const roomIds = projectRoomsOf(hub.snap.config).map((r) => r.id);
+      const several = roomIds.length > 1;
+      const q = several ? `?room=${room.id}` : "";
       const first = room.workers[0].id;
       const which = client ?? "python";
       const file = which === "node" ? "sdk/node/jsmhq-room.mjs" : "sdk/python/jsmhq_room.py";
@@ -303,11 +308,13 @@ function buildServer(hub: Hub, planner: Planner, me: string, syncFiles: (agentId
         room,
         endpoint: api.url,
         endpointFromASandbox: sandbox,
-        env: { HQ_ROOM_URL: api.url, HQ_ROOM_TOKEN: "<the user sets this; never commit it>" },
+        env: { HQ_ROOM_URL: api.url, HQ_ROOM_TOKEN: "<the user sets this; never commit it>", HQ_ROOM_ID: several ? room.id : `${room.id} (only needed once the office has more than one room)` },
+        rooms: roomIds,
         calls: {
-          "report work": `POST ${api.url}/room/event  { "worker": "${first}", "state": "working", "note": "Fetching 12 emails" }  (state: idle | working | error | done)`,
-          "hand over": `POST ${api.url}/room/event  { "worker": "${first}", "handoff": { "to": "${room.workers[1]?.id ?? "out"}" } }  (to/from "in" and "out" are the room's trays)`,
+          "report work": `POST ${api.url}/room/event${q}  { "worker": "${first}", "state": "working", "note": "Fetching 12 emails" }  (state: idle | working | error | done)`,
+          "hand over": `POST ${api.url}/room/event${q}  { "worker": "${first}", "handoff": { "to": "${room.workers[1]?.id ?? "out"}" } }  (to/from "in" and "out" are the room's trays)`,
           auth: "Authorization: Bearer $HQ_ROOM_TOKEN",
+          ...(several ? { "which room": `Calls name the room with ?room=${room.id} (the clients read HQ_ROOM_ID); without it HQ answers 400 and lists the room ids.` } : {}),
         },
         ...(source ? { copyThisFileInto: file.split("/").pop(), file: source } : {}),
         next: "You don't write code: create a task for a free worker (a builder) with create_task and assign_task, telling them to copy the client file into the project and add the calls where each step runs. Reports are fire-and-forget and never raise, so the project works with HQ off. Then ask the user (ask_user) to set HQ_ROOM_TOKEN in the project's env, naming it and not the value.",

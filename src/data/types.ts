@@ -126,10 +126,33 @@ export interface ProjectWorker {
 
 /** The project room: a separate room for the project's own workers (for example a job-referral email pipeline). */
 export interface ProjectRoomConfig {
+  /** Stable id (a slug of the project's name). Absent in rooms saved before there could be several: use `roomIdOf`. */
+  id?: string;
   name: string;
   workers: ProjectWorker[];
   /** Play the demo animation until a project sends real events. Absent = true. */
   demo?: boolean;
+}
+
+const roomSlug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+/** A room's id: the saved one, else a slug of its name. */
+export function roomIdOf(room: { id?: string; name: string }): string {
+  return roomSlug(room.id ?? "") || roomSlug(room.name) || "project";
+}
+
+/** Every project room in a config, each with its id. A config with only the old single `projectRoom` has one. */
+export function projectRoomsOf(config: Pick<HqConfig, "projectRoom" | "projectRooms">): (ProjectRoomConfig & { id: string })[] {
+  const list = Array.isArray(config.projectRooms) ? config.projectRooms : config.projectRoom ? [config.projectRoom] : [];
+  return list.filter((r) => r && Array.isArray(r.workers)).map((r) => ({ ...r, id: roomIdOf(r) }));
+}
+
+/**
+ * Where a worker's status is kept in `roomWorkers`. With one room it's the worker's own id (as before there
+ * could be several); with more, `<roomId>/<workerId>`, since worker ids only have to be unique inside their room.
+ */
+export function roomWorkerKey(roomId: string, workerId: string, scoped: boolean): string {
+  return scoped ? `${roomId}/${workerId}` : workerId;
 }
 
 /** What a project says one of its workers is doing (sent through the project-room API). */
@@ -151,7 +174,9 @@ export interface RoomHandoff {
 
 export interface HqConfig {
   project: ProjectConfig;
-  /** Optional: absent = no project room in the office. */
+  /** Optional: the project rooms in the office (one per project). Absent or empty = none. */
+  projectRooms?: ProjectRoomConfig[];
+  /** The first of `projectRooms`, kept for the single-room office UI and for configs saved before there could be several. Read rooms with `projectRoomsOf`. */
   projectRoom?: ProjectRoomConfig;
   team: AgentConfig[];
   workflow: WorkflowConfig;
@@ -408,7 +433,7 @@ export interface OfficeSnapshot {
   accessRequests?: AccessRequest[];
   mcp?: McpState;
   actionItems?: ActionItem[];
-  /** What each project-room worker is doing now, as its project reported it. */
+  /** What each project-room worker is doing now, as its project reported it. Keys: see `roomWorkerKey`. */
   roomWorkers?: Record<string, RoomWorkerStatus>;
   /** Recent hand-offs (the scene animates each once). Newest first. */
   roomHandoffs?: RoomHandoff[];
