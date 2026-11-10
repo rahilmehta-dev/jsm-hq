@@ -7,10 +7,10 @@ import { readTerminal, subscribeTerminal } from "../../store/terminal";
 import { FONT_EVENT, savedFont, terminalFont, type FontStyle } from "../../theme/fonts";
 
 const theme = {
-  background: "#16213f",
+  background: "#101418",
   foreground: "#dfe6ff",
   cursor: "#dfe6ff",
-  cursorAccent: "#16213f",
+  cursorAccent: "#101418",
   selectionBackground: "#2c3b6b",
   black: "#241a2e",
   red: "#ff5c86",
@@ -268,7 +268,7 @@ export function TerminalView({ agentId, autoFocus = true }: { agentId: string; a
 
   return (
     <div className="relative h-full min-h-0 w-full">
-      <div ref={host} className="h-full min-h-0 w-full bg-navy-2" />
+      <div ref={host} className="h-full min-h-0 w-full bg-well" />
       {wrappedUrl && (
         <button
           className="btn absolute right-3 top-2 z-10 px-2 text-[13px]"

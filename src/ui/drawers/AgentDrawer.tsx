@@ -65,7 +65,9 @@ export function AgentDrawer({ id, initialTab }: { id: string; initialTab?: Agent
       <div className="min-h-0 flex-1 overflow-hidden">
         {tab === "terminal" &&
           (status.session.state === "running" ? (
-            <TerminalView agentId={id} />
+            <WellFrame>
+              <TerminalView agentId={id} />
+            </WellFrame>
           ) : (
             <NotRunning agent={agent} status={status} />
           ))}
@@ -75,6 +77,15 @@ export function AgentDrawer({ id, initialTab }: { id: string; initialTab?: Agent
         {tab === "messages" && <MessagesTab snap={snap} agent={agent} />}
       </div>
     </>
+  );
+}
+
+/** Terminal inset: a flat dark "well" with a 1px ink border, framed by the platinum window. */
+function WellFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className="h-full min-h-0 bg-platinum p-2">
+      <div className="h-full min-h-0 overflow-hidden border border-ink bg-well">{children}</div>
+    </div>
   );
 }
 
@@ -103,9 +114,9 @@ function ShellTab({ agent, status }: { agent: AgentConfig; status: AgentStatus }
           New shell
         </button>
       </div>
-      <div className="min-h-0 flex-1">
+      <WellFrame>
         <TerminalView agentId={`shell:${agent.id}`} />
-      </div>
+      </WellFrame>
     </div>
   );
 }
@@ -230,7 +241,7 @@ function NotRunning({ agent, status }: { agent: AgentConfig; status: AgentStatus
   const setup = useOffice((st) => st.snap?.setup);
   const blocked = agent.mode === "sandbox" ? !setup?.sandboxReady : !setup?.localReady;
   return (
-    <div className="grid h-full place-items-center bg-well p-6 text-center text-[#dfe6ff]">
+    <div className="grid h-full place-items-center bg-well p-6 text-center text-well-ink">
       <div className="max-w-[380px]">
         {s.state === "starting" ? (
           <p className="blink font-term text-[22px]">{s.detail ?? "Starting…"}</p>
@@ -238,7 +249,7 @@ function NotRunning({ agent, status }: { agent: AgentConfig; status: AgentStatus
           <>
             <p className="mb-2 font-term text-[22px]">{s.state === "failed" ? `${agent.name} could not start` : `${agent.name} isn't running`}</p>
             {s.detail && <pre className="mb-3 whitespace-pre-wrap border-2 border-bad-fill px-2 py-1 text-left font-term text-[16px] text-[#ffd0dc]">{s.detail}</pre>}
-            <p className="mb-4 text-[13px] text-[#9aa6d1]">
+            <p className="mb-4 text-[13px] text-well-dim">
               {agent.mode === "sandbox"
                 ? `Start runs ${CLI_LABEL[agent.cli]} in a Docker Sandbox on this agent's own copy of the repo.`
                 : `Start runs ${CLI_LABEL[agent.cli]} locally in this agent's own copy of the repo, with permission prompts on.`}

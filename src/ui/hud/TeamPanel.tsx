@@ -15,7 +15,7 @@ function AgentRow({ a, focused, n, now }: { a: AgentView; focused: boolean; n: n
   const sub = focused ? "text-select-ink" : "text-ink-2";
   return (
     <button
-      className={`grid w-full cursor-pointer grid-cols-[36px_1fr] gap-x-2.5 gap-y-1 border-b border-ink px-2.5 py-2 text-left last:border-b-0 ${tone}`}
+      className={`grid w-full cursor-pointer grid-cols-[36px_minmax(0,1fr)] gap-x-2.5 gap-y-1 border-b border-ink px-2.5 py-2 text-left last:border-b-0 ${tone}`}
       onClick={() => ui.openAgent(a.config.id)}
       aria-label={`${a.config.name}, ${a.config.role}, ${st.label}`}
       aria-current={focused || undefined}
@@ -28,7 +28,7 @@ function AgentRow({ a, focused, n, now }: { a: AgentView; focused: boolean; n: n
         <span className={`truncate text-[12px] ${sub}`}>{a.config.role}</span>
         <span className="kbd ml-auto px-1 text-[12px] leading-none !text-ink">{n}</span>
       </div>
-      <div className="flex items-center gap-1.5">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
         <StateChip state={a.status.state} />
         <span className={`text-[12px] ${sub}`}>{ago(a.status.stateSince, now)}</span>
         {items > 0 && (

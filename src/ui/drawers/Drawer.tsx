@@ -99,7 +99,7 @@ export function DrawerHost() {
   if (drawer?.kind === "boards")
     return (
       <div
-        className="fixed inset-0 z-30 grid place-items-center bg-black/30 p-4"
+        className="fixed inset-0 z-30 grid place-items-center backdrop p-4"
         role="dialog"
         aria-modal="true"
         aria-label="Boards"

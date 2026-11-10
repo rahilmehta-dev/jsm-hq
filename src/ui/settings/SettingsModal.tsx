@@ -26,7 +26,7 @@ export function SettingsModal() {
 
   return (
     <div
-      className="fixed inset-0 z-40 grid place-items-center bg-black/30 p-4"
+      className="fixed inset-0 z-40 grid place-items-center backdrop p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Settings"
@@ -41,16 +41,11 @@ export function SettingsModal() {
         <TitleBar title="Settings" onClose={() => ui.closeSettings()} />
         <p className="m-0 border-b border-ink bg-platinum px-4 py-1 text-[12px]">Changes apply right away.</p>
         <div className="flex min-h-0 flex-1">
-          <nav className="flex w-[200px] shrink-0 flex-col gap-2 border-r border-ink bg-cream-2 p-3" aria-label="Settings sections">
+          <nav className="flex w-[200px] shrink-0 flex-col border-r border-ink bg-platinum" aria-label="Settings sections">
             {TABS.map((t) => (
-              <button
-                key={t.id}
-                className="btn block px-3 py-1 text-left"
-                aria-pressed={settings.tab === t.id}
-                onClick={() => ui.openSettings(t.id, settings.agentId)}
-              >
-                <div className="text-[16px]">{t.label}</div>
-                <div className="text-[12px] font-normal opacity-80">{t.hint}</div>
+              <button key={t.id} className="nav-row" aria-pressed={settings.tab === t.id} onClick={() => ui.openSettings(t.id, settings.agentId)}>
+                <div className="text-[14px] font-semibold">{t.label}</div>
+                <div className="text-[12px]">{t.hint}</div>
               </button>
             ))}
           </nav>
