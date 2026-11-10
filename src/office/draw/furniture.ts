@@ -133,3 +133,37 @@ export function easel(p: Pen, x: number, y: number, w: number, h: number, title:
   p.rect(x + 2, y + 2, w - 4, 7, C.white);
   text(p, title, x + w / 2 - textW(title) / 2, y + 3, C.ink);
 }
+
+/**
+ * A project pavilion's shell, for the static layer: a sage name sign, a glass front with mullions and a doorway,
+ * a pale floor and planters. `x, y, w, h` are the pavilion's px in the layer being drawn.
+ */
+export function pavilionShell(p: Pen, x: number, y: number, w: number, h: number, label: string, planters: { x: number; y: number }[]) {
+  p.rect(x + 3, y + h, w, 4, C.shadow, 0.18);
+  p.rect(x, y + 16, w, h - 16, "#ece8e0"); // floor
+  p.rect(x, y, w, 16, C.sage); // sign band
+  p.rect(x, y + 15, w, 1, C.sageL);
+  const text1 = label.toUpperCase().slice(0, Math.max(4, Math.floor((w - 8) / 6)));
+  text(p, text1, Math.round(x + w / 2 - textW(text1) / 2), y + 5, "#ffffff");
+  p.rect(x, y + 16, w, 32, C.glass, 0.9); // glass front
+  for (let gx = x; gx < x + w; gx += 24) p.rect(gx, y + 16, 2, 32, C.metalL);
+  p.rect(x, y + 47, w, 2, C.metalD);
+  const dx = x + Math.floor(w / 2) - 16;
+  p.rect(dx, y + 16, 32, 32, "#ece8e0"); // the doorway
+  p.rect(dx - 2, y + 16, 2, 32, C.metalD);
+  p.rect(dx + 32, y + 16, 2, 32, C.metalD);
+  p.rect(x, y + 16, 2, h - 16, C.wallTop); // side walls
+  p.rect(x + w - 2, y + 16, 2, h - 16, C.wallTop);
+  p.rect(x, y + h - 2, w, 2, C.wallTop);
+  for (const pl of planters) planterBox(p, pl.x, pl.y);
+}
+
+/** A white planter box with a small clipped shrub; `cx, base` = bottom centre. */
+export function planterBox(p: Pen, cx: number, base: number) {
+  p.rect(cx - 6, base - 1, 14, 2, C.shadow, 0.2);
+  p.rect(cx - 7, base - 8, 14, 8, C.pot);
+  p.rect(cx - 7, base - 2, 14, 2, C.potD);
+  disc(p, cx, base - 11, 7, C.hedgeD);
+  disc(p, cx - 1, base - 12, 5, C.hedge);
+  p.rect(cx - 3, base - 15, 2, 2, C.hedgeL);
+}

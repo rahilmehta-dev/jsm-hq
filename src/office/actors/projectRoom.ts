@@ -1,4 +1,4 @@
-// The project room's workers: non-AI characters (a mail fetcher, a writer on a local model, a sender…).
+// The project rooms' workers (one pavilion per project): non-AI characters (a mail fetcher, a writer on a local model, a sender…).
 // A project reports what they do through the project-room API (see server/room.ts); the room then shows
 // their real state, notes and hand-offs. Until a project connects, the room plays a looping demo of the
 // pipeline (mail comes in, is written, then goes out) so it can be seen and designed first.
@@ -10,7 +10,7 @@ import { drawScreen } from "../draw/live";
 import { text, textW } from "../engine/font";
 import { C } from "../engine/palette";
 import { box, ellipse, type Pen } from "../engine/pen";
-import type { OfficeLayout, ProjectStation, PxRect } from "../layout/layout";
+import type { OfficeLayout, Pavilion, ProjectStation, PxRect } from "../layout/layout";
 import { tileCentre } from "../layout/layout";
 
 const STEP = 2.4; // demo: seconds for one hop of the pipeline
@@ -19,11 +19,12 @@ const BUSY = 1.8; // the worker then works on it
 const FLIGHT = 1.2; // a real hand-off's flight, in seconds
 const RANK: Record<ProjectWorkerKind, number> = { fetcher: 0, writer: 1, sender: 2, custom: 3 };
 
-/** What the scene knows about the project's workers right now. */
+/** What the scene knows about the project rooms' workers right now. */
 export interface RoomView {
+  /** Worker statuses, keyed like `roomWorkers` (`<roomId>/<workerId>` when there are several rooms). */
   statuses: Record<string, RoomWorkerStatus>;
-  /** Play the demo while no project has reported anything. */
-  demo: boolean;
+  /** Per room id: play the demo while that project has not reported anything. Missing = true. */
+  demo: Record<string, boolean>;
 }
 
 interface Robot {
@@ -41,26 +42,27 @@ interface Flight {
 }
 
 const centre = (r: PxRect) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+const keyOf = (s: ProjectStation) => s.key ?? s.id;
+const deskPoint = (s: ProjectStation) => ({ x: centre(s.desk).x, y: s.desk.y + 8 });
 
 export class ProjectActors {
   private robots = new Map<string, Robot>();
   private flights: Flight[] = [];
   private key = "";
 
-  /** Creates, restyles and removes the robots to match the layout's stations. */
+  /** Creates, restyles and removes the robots to match the layout's pavilions. */
   sync(l: OfficeLayout, layer: Container) {
-    const room = l.projectRoom;
-    const key = room ? room.stations.map((s) => `${s.id}|${s.color}|${s.kind}`).join(",") + `@${l.ox},${l.oy}` : "";
+    const stations = l.pavilions.flatMap((p) => p.stations);
+    const key = stations.map((s) => `${keyOf(s)}|${s.color}|${s.kind}`).join(",") + `@${l.ox},${l.oy}`;
     if (key === this.key) return;
     this.key = key;
     this.clear();
-    if (!room) return;
-    for (const s of room.stations) {
+    for (const s of stations) {
       const sprites = robotSprites(s.color, false);
       const sprite = new Sprite(sprites.textures.back);
       layer.addChild(sprite);
       const c = tileCentre(l, s.stand);
-      this.robots.set(s.id, { station: s, sprite, textures: sprites.textures, x: c.x, y: c.y });
+      this.robots.set(keyOf(s), { station: s, sprite, textures: sprites.textures, x: c.x, y: c.y });
     }
   }
 
@@ -70,55 +72,62 @@ export class ProjectActors {
     this.flights = [];
   }
 
-  private deskPos(l: OfficeLayout, id: string | null) {
-    const room = l.projectRoom;
-    if (!room) return null;
-    if (id === null) return null;
-    const s = room.stations.find((x) => x.id === id);
-    return s ? { x: centre(s.desk).x, y: s.desk.y + 8 } : null;
-  }
-
-  /** A real hand-off: an envelope flies from one worker (or the in-tray) to another (or the out-tray). */
+  /** A real hand-off: an envelope flies from one worker (or a pavilion's in-tray) to another (or its out-tray). */
   handoff(l: OfficeLayout, h: RoomHandoff, t: number) {
-    const room = l.projectRoom;
-    if (!room) return;
-    const from = h.from === null ? centre(room.inbox) : this.deskPos(l, h.from);
-    const to = h.to === null ? centre(room.outbox) : this.deskPos(l, h.to);
-    if (from && to) this.flights.push({ from, to, t0: t });
+    const find = (key: string | null) => {
+      if (key === null) return null;
+      for (const p of l.pavilions) {
+        const s = p.stations.find((x) => keyOf(x) === key);
+        if (s) return { p, s };
+      }
+      return null;
+    };
+    const a = find(h.from);
+    const b = find(h.to);
+    // An end that is null is the in-tray / out-tray of the pavilion at the other end (else the first pavilion).
+    const home = (a ?? b)?.p ?? l.pavilions[0];
+    if (!home) return;
+    if ((h.from !== null && !a) || (h.to !== null && !b)) return;
+    const from = a ? deskPoint(a.s) : centre(home.inbox);
+    const to = b ? deskPoint(b.s) : centre(home.outbox);
+    this.flights.push({ from, to, t0: t });
   }
 
   /** The demo's chain: inbox → fetcher → writer → sender → outbox. Workers outside it just work. */
-  private chain(l: OfficeLayout): { nodes: { x: number; y: number }[]; stations: ProjectStation[] } {
-    const room = l.projectRoom;
-    if (!room) return { nodes: [], stations: [] };
-    const stations = room.stations.filter((s) => s.kind !== "custom").sort((a, b) => RANK[a.kind] - RANK[b.kind] || a.index - b.index);
-    return { nodes: [centre(room.inbox), ...stations.map((s) => ({ x: centre(s.desk).x, y: s.desk.y + 8 })), centre(room.outbox)], stations };
+  private chain(p: Pavilion): { nodes: { x: number; y: number }[]; stations: ProjectStation[] } {
+    const stations = p.stations.filter((s) => s.kind !== "custom").sort((a, b) => RANK[a.kind] - RANK[b.kind] || a.index - b.index);
+    return { nodes: [centre(p.inbox), ...stations.map(deskPoint), centre(p.outbox)], stations };
   }
 
-  private demoBusy(l: OfficeLayout, t: number): Set<string> {
-    const { stations } = this.chain(l);
+  private demoBusy(p: Pavilion, t: number): Set<string> {
+    const { stations } = this.chain(p);
     const phase = t % ((stations.length + 1) * STEP + 1);
     const busy = new Set<string>();
     stations.forEach((s, j) => {
       const from = j * STEP + TRAVEL;
-      if (phase >= from && phase < from + BUSY) busy.add(s.id);
+      if (phase >= from && phase < from + BUSY) busy.add(keyOf(s));
     });
     return busy;
+  }
+
+  /** A pavilion plays its demo until its project reports something (or the demo is turned off). */
+  private isDemo(p: Pavilion, view: RoomView) {
+    return view.demo[p.id] !== false && !p.stations.some((s) => view.statuses[keyOf(s)]);
   }
 
   /** What each worker shows now: the project's real report (until it expires), or the demo. */
   private states(l: OfficeLayout, t: number, view: RoomView): Map<string, { state: RoomWorkerState; note: string | null }> {
     const out = new Map<string, { state: RoomWorkerState; note: string | null }>();
-    const room = l.projectRoom;
-    if (!room) return out;
-    const live = Object.keys(view.statuses).length > 0 || !view.demo;
     const now = Date.now();
-    const busy = live ? null : this.demoBusy(l, t);
-    for (const s of room.stations) {
-      if (busy) out.set(s.id, { state: s.kind === "custom" || busy.has(s.id) ? "working" : "idle", note: null });
-      else {
-        const r = view.statuses[s.id];
-        out.set(s.id, !r || now - Date.parse(r.at) > r.ttl * 1000 ? { state: "idle", note: null } : { state: r.state, note: r.note });
+    for (const p of l.pavilions) {
+      const busy = this.isDemo(p, view) ? this.demoBusy(p, t) : null;
+      for (const s of p.stations) {
+        const k = keyOf(s);
+        if (busy) out.set(k, { state: s.kind === "custom" || busy.has(k) ? "working" : "idle", note: null });
+        else {
+          const r = view.statuses[k];
+          out.set(k, !r || now - Date.parse(r.at) > r.ttl * 1000 ? { state: "idle", note: null } : { state: r.state, note: r.note });
+        }
       }
     }
     return out;
@@ -127,8 +136,8 @@ export class ProjectActors {
   /** Moves the robots' sprites for this frame. */
   update(l: OfficeLayout, t: number, reduced: boolean, view: RoomView) {
     const states = this.states(l, t, view);
-    for (const r of this.robots.values()) {
-      const working = states.get(r.station.id)?.state === "working";
+    for (const [k, r] of this.robots) {
+      const working = states.get(k)?.state === "working";
       const hover = 3 + (reduced ? 0 : Math.floor(t * 2.5 + r.station.index) % 2);
       r.sprite.texture = working && !reduced && Math.floor(t * 8) % 2 ? r.textures.type : r.textures.back;
       r.sprite.position.set(Math.round(r.x) - 6, Math.round(r.y) - 13 - hover);
@@ -137,29 +146,30 @@ export class ProjectActors {
   }
 
   draw(p: Pen, shadow: Pen, l: OfficeLayout, t: number, reduced: boolean, view: RoomView) {
-    const room = l.projectRoom;
-    if (!room) return;
+    if (!l.pavilions.length) return;
     const states = this.states(l, t, view);
-    for (const s of room.stations) {
-      const r = this.robots.get(s.id);
-      const st = states.get(s.id) ?? { state: "idle" as const, note: null };
-      if (r) ellipse(shadow, Math.round(r.x), Math.round(r.y) + 1, 4, 1, C.shadow, 0.3);
-      const screen = st.state === "error" ? "needs-input" : st.state === "done" ? "review-passed" : st.state === "working" ? "working" : "idle";
-      drawScreen(p, s.desk.x + 15, s.desk.y - 4, screen, s.color, reduced ? 0 : t, s.index);
-      if (s.kind === "writer" && st.state === "working" && !reduced) p.rect(s.desk.x + 58, s.desk.y + 10, 14, 12, "#aaffee", 0.3 + 0.25 * Math.sin(t * 6));
-      if (r && (st.state === "working" || st.state === "error")) bubble(p, r.x, r.y - 30, t, st.state === "error");
-      if (st.note && st.state !== "idle") noteTag(p, centre(s.desk).x, s.desk.y + 63, st.note, st.state === "error");
-    }
+    for (const pv of l.pavilions)
+      for (const s of pv.stations) {
+        const k = keyOf(s);
+        const r = this.robots.get(k);
+        const st = states.get(k) ?? { state: "idle" as const, note: null };
+        if (r) ellipse(shadow, Math.round(r.x), Math.round(r.y) + 1, 4, 1, C.shadow, 0.3);
+        const screen = st.state === "error" ? "needs-input" : st.state === "done" ? "review-passed" : st.state === "working" ? "working" : "idle";
+        drawScreen(p, s.desk.x + 15, s.desk.y - 4, screen, s.color, reduced ? 0 : t, s.index);
+        if (s.kind === "writer" && st.state === "working" && !reduced) p.rect(s.desk.x + 58, s.desk.y + 10, 14, 12, "#aaffee", 0.3 + 0.25 * Math.sin(t * 6));
+        if (r && (st.state === "working" || st.state === "error")) bubble(p, r.x, r.y - 30, t, st.state === "error");
+        if (st.note && st.state !== "idle") noteTag(p, centre(s.desk).x, s.desk.y + 63, st.note, st.state === "error");
+      }
     if (reduced) return;
-    this.drawDemoMail(p, l, t, view);
+    for (const pv of l.pavilions) this.drawDemoMail(p, pv, t, view);
     this.flights = this.flights.filter((f) => t - f.t0 < FLIGHT);
     for (const f of this.flights) envelope(p, f.from, f.to, (t - f.t0) / FLIGHT);
   }
 
-  /** The demo's envelope, hopping along the chain. Not drawn once a project is reporting. */
-  private drawDemoMail(p: Pen, l: OfficeLayout, t: number, view: RoomView) {
-    if (Object.keys(view.statuses).length > 0 || !view.demo) return;
-    const { nodes } = this.chain(l);
+  /** The demo's envelope, hopping along a pavilion's chain. Not drawn once its project is reporting. */
+  private drawDemoMail(p: Pen, pv: Pavilion, t: number, view: RoomView) {
+    if (!this.isDemo(pv, view)) return;
+    const { nodes } = this.chain(pv);
     if (nodes.length < 2) return;
     const phase = t % ((nodes.length - 1) * STEP + 1);
     const hop = Math.floor(phase / STEP);
