@@ -366,6 +366,42 @@ html[data-font] .font-term {
     border: 1px solid #000;
     box-shadow: var(--shadow-window);
   }
+  /* Busy: a flat striped progress bar. The stripes drift slowly; still under reduced motion. */
+  .progress {
+    height: 10px;
+    border: 1px solid #000;
+    background: #fff;
+    overflow: hidden;
+  }
+  .progress > i {
+    display: block;
+    height: 100%;
+    background: repeating-linear-gradient(-45deg, #000 0 4px, #fff 4px 8px);
+    background-size: 11.3px 11.3px;
+    animation: drift 1.2s linear infinite;
+  }
+  /* Error callout: flat fill, 1px frame, hard shadow, small icon. */
+  .callout {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px;
+    border: 1px solid #000;
+    border-radius: var(--radius-window);
+    box-shadow: var(--shadow-window);
+    background: var(--color-bad-fill);
+    color: #000;
+  }
+  /* Stopped / disabled: a 50% dither wash behind the content. */
+  .stopped {
+    background-image: repeating-conic-gradient(rgba(0, 0, 0, 0.1) 0% 25%, transparent 0% 50%);
+    background-size: 2px 2px;
+    color: var(--color-ink-2);
+  }
+  .stopped-dark {
+    background-image: repeating-conic-gradient(rgba(255, 255, 255, 0.06) 0% 25%, transparent 0% 50%);
+    background-size: 2px 2px;
+  }
   /* Textures */
   .dither {
     background: var(--dither);
@@ -376,6 +412,11 @@ html[data-font] .font-term {
   }
 }
 
+@keyframes drift {
+  to {
+    background-position: 11.3px 0;
+  }
+}
 @keyframes blink {
   50% {
     opacity: 0.25;
@@ -395,7 +436,8 @@ html[data-font] .font-term {
 
 @media (prefers-reduced-motion: reduce) {
   .blink,
-  .led {
+  .led,
+  .progress > i {
     animation: none;
   }
 }

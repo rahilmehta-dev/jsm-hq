@@ -1,7 +1,7 @@
 import { prKey, type PullRequest } from "../../data/types";
 import { prLabel, reviewToolLabel, useOffice } from "../../store/office";
 import { ui } from "../../store/ui";
-import { ago, Dot, ReviewChip, SectionTitle, useNow } from "../kit";
+import { ago, Dot, Empty, ReviewChip, SectionTitle, useNow } from "../kit";
 import { DrawerHeader } from "./Drawer";
 
 export function PrDrawer() {
@@ -54,7 +54,7 @@ export function PrDrawer() {
       </DrawerHeader>
       <div className="scroll-thin min-h-0 flex-1 overflow-y-auto p-3">
         <SectionTitle>Open · {open.length}</SectionTitle>
-        {open.length === 0 && <p className="mb-4 text-[15px] text-muted">No open PRs.</p>}
+        {open.length === 0 && <Empty className="mb-4">No open PRs.</Empty>}
         <ul className="mb-5 flex flex-col gap-2">
           {open.map((pr) => (
             <Row key={prKey(pr)} pr={pr} />
