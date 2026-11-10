@@ -104,6 +104,8 @@ function reduce(snap: OfficeSnapshot, e: OfficeEvent): OfficeSnapshot {
       return { ...snap, sbx: e.sbx };
     case "setup.updated":
       return { ...snap, setup: e.setup };
+    case "usage.updated":
+      return { ...snap, usage: e.usage };
     case "config.updated":
       return { ...snap, config: e.config };
     case "agent.updated":

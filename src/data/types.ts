@@ -124,6 +124,8 @@ export interface ProjectConfig {
   ollamaUrl?: string; // where Ollama runs for agents on the "ollama" provider; absent = DEFAULT_OLLAMA_URL
   localServerUrl?: string; // base address of the OpenAI/Anthropic-compatible server for the "local" provider (no /v1); absent = DEFAULT_LOCAL_SERVER_URL
   ponytail?: boolean; // install the ponytail skills (DietrichGebert/ponytail) for every agent; default off
+  /** The user's own daily token budget per cloud provider (Settings → Project). Absent = no budget, so no percentage. */
+  dailyTokenBudgets?: Partial<Record<BudgetProvider, number>>;
 }
 
 /** What a project-room worker does. It's a character in the office, not a coding agent. */
@@ -349,6 +351,142 @@ export interface RemoveAgentOptions {
   deleteFolder: boolean;
 }
 
+// ---------------------------------------------------------------- Usage
+
+/**
+ * Whose tokens an agent spends: the CLI's cloud account, or a model on this machine/LAN
+ * (Ollama or a local server), which has no limit.
+ */
+export type UsageProvider = "anthropic" | "openai" | "google" | "local";
+/** Providers a daily budget can be set for. Local models are unlimited. */
+export type BudgetProvider = Exclude<UsageProvider, "local">;
+export const BUDGET_PROVIDERS: BudgetProvider[] = ["anthropic", "openai", "google"];
+export const USAGE_PROVIDER_LABEL: Record<UsageProvider, string> = {
+  anthropic: "Anthropic (Claude Code)",
+  openai: "OpenAI (Codex)",
+  google: "Google (Gemini CLI, Antigravity CLI)",
+  local: "Local models",
+};
+
+/** The provider an agent's usage counts against. */
+export function usageProviderOf(agent: Pick<AgentConfig, "cli" | "provider">): UsageProvider {
+  if (agent.provider === "ollama" || agent.provider === "local") return "local";
+  return agent.cli === "claude" ? "anthropic" : agent.cli === "codex" ? "openai" : "google";
+}
+
+/** Where an agent's numbers come from. "none": HQ can't measure this CLI, so tokens are null (unknown, not 0). */
+export type UsageSource = "claude-transcripts" | "codex-sessions" | "none";
+
+/** Tokens counted from the CLI's own session files. `total` = input + output + cacheWrite (cache reads are shown, not counted). */
+export interface TokenCounts {
+  input: number;
+  output: number;
+  cacheWrite: number;
+  cacheRead: number;
+  total: number;
+}
+
+/** A limit window the CLI itself reported (Codex writes its plan's rate limits into its session files). */
+export interface RateLimitWindow {
+  label: string; // "primary" | "secondary"
+  windowMinutes: number | null;
+  usedPercent: number;
+  resetsAt: string | null;
+}
+
+export interface AgentUsage {
+  agentId: string;
+  provider: UsageProvider;
+  source: UsageSource;
+  /** Today's tokens (local midnight to midnight). null = not measurable, never a guessed 0. */
+  tokens: TokenCounts | null;
+  /** Local model: no budget and no battery, only the token count. */
+  unlimited: boolean;
+  /** The provider's daily budget this agent shares, if the user set one. */
+  budget: number | null;
+  /** What's left of the provider's daily budget, 0–100. null when there's no budget, it's unlimited, or an agent on it can't be measured. */
+  remainingPercent: number | null;
+  /** The most recent limits the CLI reported, if any. */
+  rateLimits?: RateLimitWindow[];
+  /** Why the last read failed (counts are from the read before). */
+  error: string | null;
+}
+
+export interface ProviderUsage {
+  provider: UsageProvider;
+  /** Tokens measured today by this provider's agents. */
+  tokens: number;
+  /** Agents on this provider whose usage HQ can't measure (their tokens aren't in `tokens`). */
+  unmeasured: number;
+  budget: number | null;
+  remainingPercent: number | null;
+  unlimited: boolean;
+}
+
+export interface UsageSnapshot {
+  day: string; // "2026-11-10", HQ's local date
+  since: string; // ISO time of local midnight
+  agents: AgentUsage[];
+  providers: ProviderUsage[];
+  /** Tokens measured today across the team. Percent is not given: there's no overall budget. */
+  total: { tokens: number; measured: number; unmeasured: number };
+  checkedAt: string;
+}
+
+/** What's left of a daily budget, 0–100 (one decimal). null without a positive budget: a percentage needs a known limit. */
+export function remainingPercent(used: number, budget: number | null | undefined): number | null {
+  if (typeof budget !== "number" || !Number.isFinite(budget) || budget <= 0) return null;
+  const left = ((budget - used) / budget) * 100;
+  return Math.round(Math.min(100, Math.max(0, left)) * 10) / 10;
+}
+
+/** Totals and percentages for per-agent counts. Shared by the server collector and the demo data. */
+export function summarizeUsage(
+  team: Pick<AgentConfig, "id" | "cli" | "provider">[],
+  measured: Record<string, { source: UsageSource; tokens: TokenCounts | null; rateLimits?: RateLimitWindow[]; error?: string | null }>,
+  budgets: ProjectConfig["dailyTokenBudgets"],
+  bounds: { day: string; since: string },
+  checkedAt: string,
+): UsageSnapshot {
+  const providers = new Map<UsageProvider, ProviderUsage>();
+  for (const a of team) {
+    const p = usageProviderOf(a);
+    const budget = p === "local" ? null : (budgets?.[p] ?? null);
+    const row = providers.get(p) ?? { provider: p, tokens: 0, unmeasured: 0, budget, remainingPercent: null, unlimited: p === "local" };
+    const m = measured[a.id];
+    if (m?.tokens) row.tokens += m.tokens.total;
+    else row.unmeasured += 1;
+    providers.set(p, row);
+  }
+  // Unknown usage on any of the provider's agents makes what's left unknown too (never an optimistic number).
+  for (const row of providers.values()) row.remainingPercent = row.unlimited || row.unmeasured > 0 ? null : remainingPercent(row.tokens, row.budget);
+  const agents: AgentUsage[] = team.map((a) => {
+    const p = usageProviderOf(a);
+    const row = providers.get(p)!;
+    const m = measured[a.id];
+    return {
+      agentId: a.id,
+      provider: p,
+      source: m?.source ?? "none",
+      tokens: m?.tokens ?? null,
+      unlimited: row.unlimited,
+      budget: row.budget,
+      remainingPercent: row.remainingPercent,
+      ...(m?.rateLimits?.length ? { rateLimits: m.rateLimits } : {}),
+      error: m?.error ?? null,
+    };
+  });
+  const list = [...providers.values()];
+  return {
+    day: bounds.day,
+    since: bounds.since,
+    agents,
+    providers: list,
+    total: { tokens: list.reduce((n, r) => n + r.tokens, 0), measured: agents.filter((a) => a.tokens).length, unmeasured: agents.filter((a) => !a.tokens).length },
+    checkedAt,
+  };
+}
+
 // ---------------------------------------------------------------- Setup
 
 export type SetupCheckId = "os" | "sbx" | "sbx-login" | "sbx-policy" | "tmux" | "gh" | "gh-remote" | "github-secret" | "claude" | "codex" | "openai-secret" | "gemini" | "antigravity" | "google-secret" | "ollama" | "ollama-model" | "local-server" | "local-model";
@@ -456,6 +594,8 @@ export interface OfficeSnapshot {
   roomHandoffs?: RoomHandoff[];
   /** How a project connects to its room: the local address and token (shown in Settings). Never saved to config.json. */
   roomApi?: { url: string; token: string };
+  /** Model tokens used today, per agent and per provider, measured on this machine (never sent anywhere). */
+  usage?: UsageSnapshot;
 }
 
 /** Something an agent needs the user to do outside its sandbox (Team MCP `ask_user`). */

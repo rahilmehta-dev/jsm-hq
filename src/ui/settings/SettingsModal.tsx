@@ -16,7 +16,7 @@ const TABS: { id: SettingsTab; label: string; hint: string }[] = [
   { id: "mcp", label: "MCP", hint: "Servers for agents" },
   { id: "sandbox", label: "Sandbox", hint: "Network, proxy, secrets" },
   { id: "boards", label: "Boards", hint: "Progress boards" },
-  { id: "project", label: "Project", hint: "Repo and HQ" },
+  { id: "project", label: "Project", hint: "Repo, HQ, token budgets" },
 ];
 
 export function SettingsModal() {

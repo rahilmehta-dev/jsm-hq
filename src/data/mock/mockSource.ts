@@ -1,13 +1,33 @@
 import { agentPalette } from "../../theme/tokens";
 import type { OfficeDataSource, OfficeEvent, SimSpeed } from "../source";
 import { stackDomains } from "../stack";
-import { HOST_TERMINAL, projectRoomsOf, roomIdOf, type ProjectRoomConfig, type AccessRequest, AgentConfig, AgentPatch, Board, NewAgentInput, ProjectConfig, SandboxSettings, WorkflowPatch } from "../types";
+import { HOST_TERMINAL, projectRoomsOf, roomIdOf, summarizeUsage, type HqConfig, type UsageSnapshot, type UsageSource, type ProjectRoomConfig, type AccessRequest, AgentConfig, AgentPatch, Board, NewAgentInput, ProjectConfig, SandboxSettings, WorkflowPatch } from "../types";
 import { defaultPresetId, presets, type Preset } from "./presets";
 import { Simulation } from "./simulation";
 import * as T from "./terminalScripts";
 import { mockSbx, mockSession, mockSetup, World } from "./world";
 
 const TICK_MS = 50;
+
+/** Demo usage: made-up token counts for the demo team (the real numbers come from HQ's collector). Gemini/Antigravity stay unknown, as in HQ. */
+function demoUsage(cfg: HqConfig): UsageSnapshot {
+  const now = new Date();
+  const since = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const measured = Object.fromEntries(
+    cfg.team.map((a, i) => {
+      const source: UsageSource = a.cli === "claude" ? "claude-transcripts" : a.cli === "codex" ? "codex-sessions" : "none";
+      if (source === "none") return [a.id, { source, tokens: null }];
+      const input = 1_800 * (i + 2);
+      const output = 26_000 * (i + 1);
+      const cacheWrite = 140_000 * (i + 1);
+      return [a.id, { source, tokens: { input, output, cacheWrite, cacheRead: 2_400_000 * (i + 1), total: input + output + cacheWrite } }];
+    }),
+  );
+  const day = `${since.getFullYear()}-${pad(since.getMonth() + 1)}-${pad(since.getDate())}`;
+  return summarizeUsage(cfg.team, measured, cfg.project.dailyTokenBudgets, { day, since: since.toISOString() }, now.toISOString());
+}
+
 const TERM_MS = 30;
 
 
@@ -50,7 +70,15 @@ export function createMockSource(): OfficeDataSource {
   }
 
   function boot() {
-    world.setEmitter((e) => listener?.(e));
+    world.setEmitter((e) => {
+      listener?.(e);
+      // Budgets or the team changed: recompute the demo usage like HQ does.
+      if (e.type === "config.updated") {
+        world.snap.usage = demoUsage(world.snap.config);
+        listener?.({ type: "usage.updated", usage: structuredClone(world.snap.usage) });
+      }
+    });
+    world.snap.usage = demoUsage(world.snap.config);
     listener?.({ type: "snapshot", snapshot: structuredClone(world.snap) });
     sim.start();
   }
@@ -413,7 +441,18 @@ export function createMockSource(): OfficeDataSource {
     },
 
     updateProject(patch: Partial<ProjectConfig>) {
-      Object.assign(world.snap.config.project, patch);
+      const { dailyTokenBudgets: budgets, ...rest } = patch;
+      Object.assign(world.snap.config.project, rest);
+      if (budgets) {
+        // Same as HQ: per provider, a positive number sets the budget and null clears it.
+        const next = { ...world.snap.config.project.dailyTokenBudgets };
+        for (const [k, v] of Object.entries(budgets) as [keyof typeof next, number | null][]) {
+          if (typeof v === "number" && v > 0) next[k] = Math.round(v);
+          else delete next[k];
+        }
+        if (Object.keys(next).length) world.snap.config.project.dailyTokenBudgets = next;
+        else delete world.snap.config.project.dailyTokenBudgets;
+      }
       world.configChanged();
       world.syncEnvironments();
     },

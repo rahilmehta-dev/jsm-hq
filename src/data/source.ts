@@ -28,6 +28,7 @@ import type {
   ProjectRoomConfig,
   RoomHandoff,
   RoomWorkerStatus,
+  UsageSnapshot,
 } from "./types";
 
 export type OfficeEvent =
@@ -51,7 +52,8 @@ export type OfficeEvent =
   | { type: "mcp.updated"; mcp: McpState }
   | { type: "action.updated"; item: ActionItem }
   | { type: "room.worker"; workerId: string; status: RoomWorkerStatus }
-  | { type: "room.handoff"; handoff: RoomHandoff };
+  | { type: "room.handoff"; handoff: RoomHandoff }
+  | { type: "usage.updated"; usage: UsageSnapshot };
 
 export type SimSpeed = 1 | 2 | 4;
 

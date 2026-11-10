@@ -16,6 +16,7 @@ import type { Sessions } from "./sessions";
 import { parseLocalServerUrl, parseOllamaUrl } from "./ollama";
 import { cleanProjectRoom, MAX_ROOMS, removeRoom, setRoom, upsertRoom } from "./room";
 import { newAgent } from "./store";
+import { patchBudgets } from "./usage";
 import { mergeByNotice } from "./githubSync";
 import { prRef } from "./github";
 
@@ -373,6 +374,12 @@ export function makeCommands(hub: Hub, sessions: Sessions, planner: Planner, inb
         if (url && url !== DEFAULT_LOCAL_SERVER_URL) project.localServerUrl = url;
         else delete project.localServerUrl;
         void sessions.recheckSetup();
+      }
+      if (p.dailyTokenBudgets !== undefined) {
+        // Per provider: a number sets the budget, null (or 0/empty) clears it. Only token counts, never keys.
+        const budgets = patchBudgets(project.dailyTokenBudgets, p.dailyTokenBudgets);
+        if (budgets) project.dailyTokenBudgets = budgets;
+        else delete project.dailyTokenBudgets;
       }
       const ponytailChanged = typeof p.ponytail === "boolean" && p.ponytail !== !!project.ponytail;
       if (typeof p.ponytail === "boolean") {
