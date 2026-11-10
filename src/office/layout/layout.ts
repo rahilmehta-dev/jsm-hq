@@ -8,7 +8,7 @@
 //   └──────────────────────────────────────────────────────────╨─────┘
 //   Garden courtyard on the lawn in front of the entrance (left).
 
-import { supportsOllama, type AgentConfig, type Environment, type HqConfig, type ProjectWorkerKind } from "../../data/types";
+import { projectRoomsOf, roomWorkerKey, supportsOllama, type AgentConfig, type Environment, type HqConfig, type ProjectRoomConfig, type ProjectWorkerKind } from "../../data/types";
 import { deskCarpets } from "../engine/palette";
 import { WalkGrid, type Tile } from "../engine/path";
 
@@ -26,7 +26,6 @@ const PITCH = 8;
 const RACKS_PER_ROW = 5;
 const STATION_W = 7; // a project-room worker's station, in tiles
 const STATION_H = 6;
-export const DOOR_Y = 12; // the project room's doorway, in the corridor above the desks (2 tiles tall)
 const SECTION_COLS = 3; // most cubicle columns in one section
 const CORRIDOR = 1; // extra empty tiles between sections (the 1-tile gutter of each block makes the corridor 2 wide)
 
@@ -86,16 +85,107 @@ export interface ProjectStation {
   desk: PxRect; // the desk and its prop, world px
   stand: Tile;
   rect: PxRect;
+  /** Where this worker's status is kept in `roomWorkers` (scoped by room id when there are several rooms). */
+  key?: string;
 }
 
-export interface ProjectRoomLayout {
+/** One project's room as a small pavilion on the campus lawn. Tiles are building tiles (may lie below the building), rects are world px. */
+export interface Pavilion {
+  id: string;
   name: string;
-  wallX: number; // the wall between the office and the room (tiles); the doorway is in it
-  x0: number; // first interior tile
-  w: number; // interior width in tiles
+  rect: PxRect; // the whole pavilion, walls included
+  sign: PxRect; // the name sign above the glass front
+  glass: PxRect; // the glass front, facing the stone path
+  doorway: PxRect; // the opening in the glass front
   stations: ProjectStation[];
-  inbox: PxRect; // where mail comes in (by the doorway), world px
-  outbox: PxRect; // where sent mail leaves, world px
+  planters: { x: number; y: number }[]; // world px, base centres
+  inbox: PxRect;
+  outbox: PxRect;
+  x0: number; // tile of the pavilion's left wall, and its width and height in tiles
+  y0: number;
+  wTiles: number;
+  hTiles: number;
+}
+
+const PAV_GAP = 2; // tiles of lawn between pavilions
+const PAV_PATH = 3; // tiles between the building and the first row of pavilions (the stone path)
+const PAV_FRONT = 4; // tiles above a pavilion's first station: sign + glass front
+
+/** Size of a pavilion's interior for n workers: stations 7×6 tiles, one column up to 3 workers, two beyond. */
+export function pavilionSize(workers: number): { cols: number; rows: number; w: number; h: number } {
+  const cols = workers > 3 ? 2 : 1;
+  const rows = Math.max(1, Math.ceil(workers / cols));
+  return { cols, rows, w: cols * STATION_W + 2, h: PAV_FRONT + rows * STATION_H + 1 };
+}
+
+/**
+ * Places one pavilion per project room in rows on the lawn south of the building, left to right, wrapping
+ * to a new row once a row is wider than `rowTiles`. The campus grows downward as rooms are added.
+ * `originTy` is the tile row of the first pavilion row; `scoped` keys worker statuses by room.
+ */
+export function layoutPavilions(
+  rooms: (ProjectRoomConfig & { id: string })[],
+  opts: { ox: number; oy: number; originTy: number; rowTiles: number },
+): { pavilions: Pavilion[]; bottomTy: number; rightTx: number } {
+  const scoped = rooms.length > 1;
+  const px = (tx: number) => opts.ox + tx * TS;
+  const py = (ty: number) => opts.oy + ty * TS;
+  const pavilions: Pavilion[] = [];
+  let tx = 0;
+  let ty = opts.originTy;
+  let rowH = 0;
+  let rightTx = 0;
+  for (const room of rooms) {
+    const sz = pavilionSize(room.workers.length);
+    if (tx > 0 && tx + sz.w > opts.rowTiles) {
+      tx = 0;
+      ty += rowH + PAV_GAP + 1;
+      rowH = 0;
+    }
+    const x0 = tx;
+    const y0 = ty;
+    const stations: ProjectStation[] = room.workers.map((w, i) => {
+      const sx = x0 + 1 + (i % sz.cols) * STATION_W;
+      const sy = y0 + PAV_FRONT + Math.floor(i / sz.cols) * STATION_H;
+      return {
+        id: w.id,
+        name: w.name,
+        kind: w.kind,
+        color: w.color,
+        index: i,
+        desk: { x: px(sx + 1), y: py(sy), w: 5 * TS, h: 2 * TS },
+        stand: [sx + 2, sy + 2] as Tile,
+        rect: { x: px(sx), y: py(sy) - 6, w: STATION_W * TS, h: 3 * TS + 6 },
+        key: roomWorkerKey(room.id, w.id, scoped),
+      };
+    });
+    const mid = x0 + Math.floor(sz.w / 2);
+    pavilions.push({
+      id: room.id,
+      name: room.name,
+      x0,
+      y0,
+      wTiles: sz.w,
+      hTiles: sz.h,
+      rect: { x: px(x0), y: py(y0), w: sz.w * TS, h: sz.h * TS },
+      sign: { x: px(x0), y: py(y0), w: sz.w * TS, h: TS },
+      glass: { x: px(x0), y: py(y0 + 1), w: sz.w * TS, h: 2 * TS },
+      doorway: { x: px(mid - 1), y: py(y0 + 1), w: 2 * TS, h: 2 * TS },
+      stations,
+      planters: [
+        { x: px(x0) + 10, y: py(y0 + sz.h) - 4 },
+        { x: px(x0 + sz.w) - 10, y: py(y0 + sz.h) - 4 },
+        { x: px(x0) - 8, y: py(y0 + 1) + 12 },
+        { x: px(x0 + sz.w) + 8, y: py(y0 + 1) + 12 },
+      ],
+      inbox: { x: px(x0 + 1) + 2, y: py(y0 + 3) - 2, w: 26, h: 20 },
+      outbox: { x: px(x0 + sz.w - 1) - 30, y: py(y0 + 3) - 2, w: 26, h: 30 },
+    });
+    rowH = Math.max(rowH, sz.h);
+    tx += sz.w + PAV_GAP;
+    rightTx = Math.max(rightTx, x0 + sz.w);
+  }
+  return { pavilions, bottomTy: pavilions.length ? ty + rowH : opts.originTy, rightTx };
 }
 
 export interface Hit {
@@ -120,7 +210,7 @@ export interface OfficeLayout {
   desks: DeskSpot[];
   sections: Section[];
   corridors: { x0: number; w: number }[]; // the empty lanes between sections (tiles)
-  projectRoom: ProjectRoomLayout | null;
+  pavilions: Pavilion[]; // one per project room, on the lawn south of the building
   courtyard: PxRect; // the central garden in front of the entrance, world px
   belt: { y: number; x0: number; x1: number; topY: number | null }; // px; topY = vertical run end
   gate: PxRect | null;
@@ -143,8 +233,7 @@ export function layoutKey(config: HqConfig, envs: Environment[]): string {
     wf.deploy.enabled,
     envs.map((e) => e.name),
     config.project.officeName ?? "",
-    config.projectRoom?.name ?? null,
-    config.projectRoom?.workers.map((w) => [w.id, w.name, w.kind, w.color]) ?? [],
+    projectRoomsOf(config).map((r) => [r.id, r.name, r.workers.map((w) => [w.id, w.name, w.kind, w.color])]),
   ]);
 }
 
@@ -184,23 +273,20 @@ export function generateLayout(config: HqConfig, envs: Environment[]): OfficeLay
   const rackRows = Math.ceil(rackCount / RACKS_PER_ROW);
   const srW = hasServer ? Math.max(5, 2 + Math.min(rackCount, RACKS_PER_ROW) * 2) : 0;
 
-  // The project room: its own wing beside the office, for the project's non-AI workers.
-  const room = config.projectRoom?.workers.length ? config.projectRoom : null;
-  const projCols = room && room.workers.length > 3 ? 2 : 1;
-  const projRows = room ? Math.ceil(room.workers.length / projCols) : 0;
-  const projW = room ? projCols * STATION_W + 1 : 0; // interior tiles
-  const projTiles = room ? 1 + projW : 0; // the wall column plus the interior
-  const glassX = mainW + 1 + projTiles;
-
   const yb = DESK_Y + rows * PITCH; // belt row
   const minH = hasServer ? Math.ceil((22 + rackRows * 112) / TS) + 3 : 0;
-  const H = Math.max(yb + 3, minH, room ? TOP_Y + 4 + projRows * STATION_H + 2 : 0);
-  const W = 1 + mainW + projTiles + (hasServer ? 1 + srW : 0) + 1;
+  const H = Math.max(yb + 3, minH);
+  const W = 1 + mainW + (hasServer ? 1 + srW : 0) + 1;
+  const glassX = mainW + 1;
 
   const ox = MARGIN_L * TS;
   const oy = MARGIN * TS;
   const px = (tx: number) => ox + tx * TS;
   const py = (ty: number) => oy + ty * TS;
+  // Project rooms stand apart as pavilions on the lawn south of the building; the campus grows to fit them.
+  const pav = layoutPavilions(projectRoomsOf(config), { ox, oy, originTy: H + PAV_PATH, rowTiles: Math.max(W, 18) });
+  const worldW = Math.max(W, pav.rightTx) + MARGIN_L + MARGIN;
+  const worldH = Math.max(H, pav.pavilions.length ? pav.bottomTy + 1 : 0) + MARGIN * 2;
 
   // ---------------------------------------------------------- walkable grid
   const grid = new WalkGrid(W, H);
@@ -222,38 +308,6 @@ export function generateLayout(config: HqConfig, envs: Environment[]): OfficeLay
   // belt + bottom
   grid.set(2, yb, mainW, yb, false);
 
-  // project room: a wall with a doorway, then the room's floor and the workers' desks
-  const stations: ProjectStation[] = [];
-  let projectRoom: ProjectRoomLayout | null = null;
-  if (room) {
-    const x0 = mainW + 2;
-    grid.set(mainW + 1, DOOR_Y, mainW + 1, DOOR_Y + 1, true); // the doorway
-    grid.set(x0, TOP_Y, x0 + projW - 1, H - 2, true);
-    room.workers.forEach((w, i) => {
-      const sx = x0 + (i % projCols) * STATION_W;
-      const sy = TOP_Y + 3 + Math.floor(i / projCols) * STATION_H;
-      grid.set(sx + 1, sy, sx + 5, sy + 1, false); // the desk and its prop
-      stations.push({
-        id: w.id,
-        name: w.name,
-        kind: w.kind,
-        color: w.color,
-        index: i,
-        desk: { x: px(sx + 1), y: py(sy), w: 5 * TS, h: 2 * TS },
-        stand: [sx + 2, sy + 2],
-        rect: { x: px(sx), y: py(sy) - 6, w: STATION_W * TS, h: 3 * TS + 6 },
-      });
-    });
-    projectRoom = {
-      name: room.name,
-      wallX: mainW + 1,
-      x0,
-      w: projW,
-      stations,
-      inbox: { x: px(x0) + 2, y: py(DOOR_Y) - 18, w: 26, h: 20 },
-      outbox: { x: px(x0 + projW) - 30, y: oy + 22, w: 26, h: 30 },
-    };
-  }
 
   // ---------------------------------------------------------- desks
   const placed = groups.flatMap((g, gi) => g.agents.map((a, j) => ({ a, j, cols: blockCols(g.agents.length), x: sections[gi].x0 })));
@@ -330,14 +384,12 @@ export function generateLayout(config: HqConfig, envs: Environment[]): OfficeLay
   if (gate) hits.push({ kind: "gate", id: "gate", rect: { x: gate.x, y: gate.y - 16, w: gate.w, h: gate.h + 16 } });
   if (prBoard) hits.push({ kind: "prs", id: "prs", rect: { x: prBoard.x, y: prBoard.y, w: prBoard.w, h: prBoard.h + 26 } });
   for (const r of racks) hits.push({ kind: "env", id: r.name, rect: r });
-  for (const s of stations) hits.push({ kind: "worker", id: s.id, rect: s.rect });
+  for (const pv of pav.pavilions) for (const s of pv.stations) hits.push({ kind: "worker", id: s.key ?? s.id, rect: s.rect });
 
   const coffee: Tile[] = [[L, 5], [L + 1, 5], [L + 2, 5]];
   // Idle agents also stroll down the corridors between sections.
   const hall: Tile[] = corridors.map((c) => [c.x0, DESK_Y + 3] as Tile);
-  // ...and visit the project room through its doorway.
-  const visit: Tile[] = projectRoom ? [[projectRoom.x0, DOOR_Y], [projectRoom.x0 + 1, DOOR_Y + 1], [projectRoom.x0 + projW - 1, DOOR_Y]] : [];
-  const wander: Tile[] = [[L + 3, 9], [L + 5, 9], [L + 6, 6], [4, 9], [7, 9], [6, 11], [Math.min(mainW - 1, L + 7), 11], ...hall, ...visit];
+  const wander: Tile[] = [[L + 3, 9], [L + 5, 9], [L + 6, 6], [4, 9], [7, 9], [6, 11], [Math.min(mainW - 1, L + 7), 11], ...hall];
 
   return {
     key: layoutKey(config, envs),
@@ -345,8 +397,8 @@ export function generateLayout(config: HqConfig, envs: Environment[]): OfficeLay
     H,
     ox,
     oy,
-    worldW: (W + MARGIN_L + MARGIN) * TS,
-    worldH: (H + MARGIN * 2) * TS,
+    worldW: worldW * TS,
+    worldH: worldH * TS,
     mainW,
     grid,
     lead: { agentId: lead?.id ?? null, seat: [15, 7], rect: { x: px(12), y: oy + 64, w: 6 * TS, h: 3 * TS } },
@@ -355,8 +407,8 @@ export function generateLayout(config: HqConfig, envs: Environment[]): OfficeLay
     desks,
     sections,
     corridors,
-    projectRoom,
-    courtyard: { x: TS, y: oy + 5 * TS, w: ox - 2 * TS, h: Math.max(8, H - 8) * TS },
+    pavilions: pav.pavilions,
+        courtyard: { x: TS, y: oy + 5 * TS, w: ox - 2 * TS, h: Math.max(8, H - 8) * TS },
     belt: { y: beltY, x0: px(2), x1: beltX1, topY: beltTop },
     gate,
     prBoard,

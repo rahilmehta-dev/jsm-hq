@@ -2,7 +2,7 @@
 
 import { reviewToolLabel, useOffice } from "../store/office";
 import { ui, useUi } from "../store/ui";
-import { WORKER_KIND_LABEL } from "../data/types";
+import { projectRoomsOf, roomWorkerKey, WORKER_KIND_LABEL } from "../data/types";
 import { stateStyle } from "../theme/tokens";
 import type { Hit, PxRect } from "./layout/layout";
 import type { OfficeScene } from "./OfficeScene";
@@ -47,11 +47,14 @@ function describe(hit: Hit): { title: string; sub?: string } {
     return { title: hit.kind === "gate" ? `${label} review gate` : "Pull requests", sub: `${open.length} open · ${reviewing} reviewing` };
   }
   if (hit.kind === "worker") {
-    const w = snap.config.projectRoom?.workers.find((x) => x.id === hit.id);
+    const rooms = projectRoomsOf(snap.config);
+    const room = rooms.find((rm) => rm.workers.some((x) => roomWorkerKey(rm.id, x.id, rooms.length > 1) === hit.id));
+    const w = room?.workers.find((x) => roomWorkerKey(room.id, x.id, rooms.length > 1) === hit.id);
     const r = snap.roomWorkers?.[hit.id];
     const live = r && Date.now() - Date.parse(r.at) < r.ttl * 1000;
-    const sub = live ? [r.state, r.note].filter(Boolean).join(": ") : w ? `${WORKER_KIND_LABEL[w.kind]}${snap.roomWorkers && Object.keys(snap.roomWorkers).length ? " · idle" : " · demo animation until a project connects"}` : undefined;
-    return { title: `${w?.name ?? hit.id} · ${snap.config.projectRoom?.name ?? "Project room"}`, sub };
+    const reporting = room?.workers.some((x) => snap.roomWorkers?.[roomWorkerKey(room.id, x.id, rooms.length > 1)]);
+    const sub = live ? [r.state, r.note].filter(Boolean).join(": ") : w ? `${WORKER_KIND_LABEL[w.kind]}${reporting ? " · idle" : " · demo animation until a project connects"}` : undefined;
+    return { title: `${w?.name ?? hit.id} · ${room?.name ?? "Project room"}`, sub };
   }
   const env = snap.environments.find((e) => e.name === hit.id);
   return { title: `Environment: ${hit.id}`, sub: env ? `${env.status} · ${env.url}` : undefined };

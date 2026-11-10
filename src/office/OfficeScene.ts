@@ -2,7 +2,7 @@
 // (hover, selection) through the ui actions.
 
 import { Application, Container, Graphics, Sprite, TextureStyle, type Texture } from "pixi.js";
-import type { AgentState, HqConfig, PullRequest, ReviewState } from "../data/types";
+import { projectRoomsOf, type AgentState, type HqConfig, type PullRequest, type ReviewState } from "../data/types";
 import { mulberry32 } from "../lib/random";
 import { selectTeam, useOffice } from "../store/office";
 import { useUi, type FocusTarget } from "../store/ui";
@@ -116,7 +116,10 @@ export class OfficeScene {
 
   /** What the project room's workers report (and whether to play the demo until they do). */
   roomView(snap: import("../data/types").OfficeSnapshot): RoomView {
-    return { statuses: snap.roomWorkers ?? {}, demo: snap.config.projectRoom?.demo !== false };
+    return {
+      statuses: snap.roomWorkers ?? {},
+      demo: Object.fromEntries(projectRoomsOf(snap.config).map((r) => [r.id, r.demo !== false])),
+    };
   }
 
   stateOf(agentId: string | null): AgentState | null {

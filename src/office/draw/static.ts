@@ -6,8 +6,8 @@ import { mulberry32 } from "../../lib/random";
 import { text, textW } from "../engine/font";
 import { C } from "../engine/palette";
 import { box, CanvasPen, disc, ellipse, line, makeCanvas } from "../engine/pen";
-import { DOOR_Y, type OfficeLayout } from "../layout/layout";
-import { beanbag, easel, partitions, plant, plate, rackBody, tree, workDesk } from "./furniture";
+import type { OfficeLayout } from "../layout/layout";
+import { beanbag, easel, partitions, pavilionShell, plant, plate, rackBody, tree, workDesk } from "./furniture";
 
 export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElement {
   const canvas = makeCanvas(l.worldW, l.worldH);
@@ -56,6 +56,21 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
   p.rect(cy.x - 16, doorY - 4, l.ox - cy.x + 16, 1, C.pathD);
   p.rect(cy.x - 16, doorY + 19, l.ox - cy.x + 16, 1, C.pathD);
   for (let x = cy.x - 16 + 12; x < l.ox; x += 24) p.rect(x, doorY - 3, 1, 22, C.pathD, 0.7);
+  // stone path along the front of the building, from the courtyard past each pavilion's doorway
+  if (l.pavilions.length) {
+    const pathY = l.oy + bh + 14;
+    const left = cy.x + cy.w / 2 - 8;
+    const right = Math.max(...l.pavilions.map((q) => q.doorway.x + q.doorway.w));
+    p.rect(left, pathY, right - left + 8, 20, C.path);
+    p.rect(left, pathY, right - left + 8, 1, C.pathD);
+    p.rect(left, pathY + 19, right - left + 8, 1, C.pathD);
+    p.rect(left, cy.y + cy.h - 8, 20, pathY - (cy.y + cy.h - 8) + 20, C.path); // from the courtyard down to the path
+    for (let x = left + 12; x < right + 8; x += 24) p.rect(x, pathY + 1, 1, 18, C.pathD, 0.7);
+    for (const q of l.pavilions) {
+      const top = pathY + 20;
+      p.rect(q.doorway.x + 4, top, q.doorway.w - 8, q.rect.y + 48 - top, C.path); // stub to the doorway
+    }
+  }
   // trees around the edges of the campus
   const bush = (x: number, y: number) => hedge(p, x, y, 22, 9);
   for (let x = 28; x < l.worldW - 10; x += 78 + Math.floor(R() * 40)) {
@@ -63,7 +78,7 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
     if (x > cy.x + cy.w) tree(p, x + 20, l.worldH - 20 + Math.floor(R() * 5), 12 + Math.floor(R() * 3));
   }
   for (let y = 70; y < l.worldH - 40; y += 90 + Math.floor(R() * 40)) tree(p, l.worldW - 20 + Math.floor(R() * 4), y + 20, 13);
-  for (let x = l.ox + 24; x < l.ox + bw - 40; x += 120) bush(x, l.oy + bh + 12);
+  if (!l.pavilions.length) for (let x = l.ox + 24; x < l.ox + bw - 40; x += 120) bush(x, l.oy + bh + 12);
 
   g.save();
   g.translate(l.ox, l.oy);
@@ -138,18 +153,6 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
     for (let x = sx; x < sx + sw; x += 8) p.rect(x, 64, 1, bh - 80, C.grateD);
   }
 
-  // project room floor: warm tiles
-  const pr = l.projectRoom;
-  if (pr) {
-    const fx = pr.x0 * 16;
-    for (let ty = 64; ty < bh - 16; ty += 8) for (let tx = 0; tx < pr.w * 2; tx++) p.rect(fx + tx * 8, ty, 8, 8, (tx + ty / 8) % 2 ? "#e6e1d6" : "#f0ece4");
-    // a rug under each worker's desk, in the worker's color
-    for (const s of pr.stations) {
-      p.rect(s.rect.x - l.ox + 4, s.rect.y - l.oy + 22, s.rect.w - 8, 50, s.color, 0.22);
-      p.rect(s.rect.x - l.ox + 4, s.rect.y - l.oy + 22, s.rect.w - 8, 1, s.color, 0.6);
-    }
-  }
-
   // cable channels
   for (const cb of l.cables) {
     const color = config.team.find((a) => a.id === cb.agentId)?.color ?? C.blue;
@@ -173,17 +176,6 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
   for (let x = 8; x < mainPx; x += 16) p.rect(x, 47, 1, 11, "#d6d2c9");
   p.rect(0, 60, bw, 4, C.base);
   p.rect(0, 60, bw, 1, "#d4cfc4");
-  if (pr) {
-    const wx = pr.wallX * 16;
-    const ww = (pr.w + 1) * 16;
-    p.rect(wx, 16, ww, 44, C.glass);
-    p.rect(wx, 16, ww, 6, C.sage);
-    for (let x = wx; x < wx + ww; x += 24) p.rect(x, 22, 2, 38, C.metalL);
-    for (let x = wx + 6; x < wx + ww - 8; x += 24) line(p, x, 56, x + 9, 28, "#ffffff");
-    const label = pr.name.toUpperCase().slice(0, 22);
-    box(p, wx + ww / 2 - textW(label) / 2 - 3, 3, textW(label) + 6, 9, C.ink);
-    text(p, label, wx + ww / 2 - textW(label) / 2, 5, C.white);
-  }
   if (sr) {
     const sx0 = sr.glassX * 16;
     p.rect(sx0, 16, bw - sx0, 44, C.wallSrv);
@@ -206,18 +198,6 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
   p.rect(7, doorY - l.oy, 2, 16, C.metalL);
   p.rect(0, doorY - l.oy - 3, 20, 3, C.metalD);
   p.rect(0, doorY - l.oy + 16, 20, 3, C.metalD);
-  // the wall between the office and the project room, with a doorway
-  if (pr) {
-    const wx = pr.wallX * 16;
-    const dy0 = DOOR_Y * 16;
-    p.rect(wx, 64, 16, dy0 - 64, C.wallTop);
-    p.rect(wx, dy0 + 32, 16, bh - 16 - (dy0 + 32), C.wallTop);
-    p.rect(wx + 15, 64, 1, dy0 - 64, C.wallTopL);
-    p.rect(wx + 15, dy0 + 32, 1, bh - 16 - (dy0 + 32), C.wallTopL);
-    p.rect(wx, dy0 - 3, 16, 3, C.deskDD); // door frame
-    p.rect(wx, dy0 + 32, 16, 3, C.deskDD);
-    p.rect(wx, dy0, 16, 32, "#ece8e0");
-  }
   // glass wall
   if (sr) {
     const gx = sr.glassX * 16;
@@ -338,13 +318,13 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
     plate(p, name, X + 64, Y + 4);
   }
 
-  // ------------------------------------------------ project room: desks, in/out trays
-  if (pr) {
-    const ox = l.ox;
-    const oy = l.oy;
-    for (const s of pr.stations) {
-      const dx = s.desk.x - ox;
-      const dy = s.desk.y - oy;
+  // ------------------------------------------------ project pavilions: desks, in/out trays
+  for (const pv of l.pavilions) {
+    pavilionShell(p, pv.rect.x - l.ox, pv.rect.y - l.oy, pv.rect.w, pv.rect.h, pv.name, pv.planters.map((q) => ({ x: q.x - l.ox, y: q.y - l.oy })));
+    for (const s of pv.stations) {
+      const dx = s.desk.x - l.ox;
+      const dy = s.desk.y - l.oy;
+      p.rect(s.rect.x - l.ox + 4, s.rect.y - l.oy + 22, s.rect.w - 8, 50, s.color, 0.2); // a rug in the worker's colour
       workDesk(p, dx, dy, s.index);
       plate(p, s.name.toUpperCase().slice(0, 10), dx + 24, dy + 52);
       if (s.kind === "fetcher") {
@@ -368,13 +348,13 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
         disc(p, dx + 64, dy + 17, 2, C.yellow);
       }
     }
-    const ib = pr.inbox;
-    box(p, ib.x - ox, ib.y - oy, ib.w, ib.h, C.metal);
-    text(p, "IN", ib.x - ox + 9, ib.y - oy + 7, C.ink);
-    const ob = pr.outbox;
-    box(p, ob.x - ox, ob.y - oy, ob.w, ob.h, "#5f6b80");
-    p.rect(ob.x - ox + 3, ob.y - oy + 10, ob.w - 6, 6, "#1f1d26");
-    text(p, "OUT", ob.x - ox + 4, ob.y - oy + 3, C.white);
+    const ib = pv.inbox;
+    box(p, ib.x - l.ox, ib.y - l.oy, ib.w, ib.h, C.metal);
+    text(p, "IN", ib.x - l.ox + 9, ib.y - l.oy + 7, C.ink);
+    const ob = pv.outbox;
+    box(p, ob.x - l.ox, ob.y - l.oy, ob.w, ob.h, "#5f6b80");
+    p.rect(ob.x - l.ox + 3, ob.y - l.oy + 10, ob.w - 6, 6, "#1f1d26");
+    text(p, "OUT", ob.x - l.ox + 4, ob.y - l.oy + 3, C.white);
   }
 
   // ------------------------------------------------ PR board, racks, mailbox
