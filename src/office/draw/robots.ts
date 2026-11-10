@@ -28,7 +28,7 @@ export function robotCanvases(color: string, lead: boolean): Record<Facing, HTML
   const key = `${color}|${lead}`;
   const hit = canvasCache.get(key);
   if (hit) return hit;
-  const pal = { k: C.ink, B: color, b: shade(color, -0.3), h: shade(color, 0.6), V: "#16213f", G: C.gold };
+  const pal = { k: C.ink, B: color, b: shade(color, -0.3), h: color, V: "#16213f", G: C.gold };
   const head = lead ? HEAD_CROWN : HEAD_ANTENNA;
   const side = spriteCanvas([...head, ...BODY_SIDE], pal);
   const canvases: Record<Facing, HTMLCanvasElement> = {
