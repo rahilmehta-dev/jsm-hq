@@ -306,7 +306,8 @@ export function hostReader(agent: AgentConfig, workspace: string): TranscriptRea
   };
 }
 
-const LIST_SCRIPT = `for d in "$HOME/.claude/projects" "\${CODEX_HOME:-$HOME/.codex}/sessions"; do [ -d "$d" ] && find "$d" -type f -name '*.jsonl' -newermt "@$1" -printf '%s\\t%p\\n'; done 2>/dev/null; exit 0`;
+// A find that fails (e.g. one without -newermt) fails the read, so usage shows unknown rather than 0.
+const LIST_SCRIPT = `for d in "$HOME/.claude/projects" "\${CODEX_HOME:-$HOME/.codex}/sessions"; do if [ -d "$d" ]; then find "$d" -type f -name '*.jsonl' -newermt "@$1" -printf '%s\\t%p\\n' || exit 3; fi; done; exit 0`;
 const READ_SCRIPT = `tail -c +"$(( $1 + 1 ))" -- "$3" | head -c "$2"`;
 
 /** Parses `find -printf '%s\t%p\n'` output. */
