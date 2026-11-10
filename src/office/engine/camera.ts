@@ -16,7 +16,9 @@ const MAX_ZOOM = 6;
 // number and every art pixel covers whole device pixels (1.5x is crisp on Retina).
 const DPR = Math.max(1, Math.round(window.devicePixelRatio || 1));
 const STEP = 1 / DPR;
-const snapZoom = (z: number) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(z / STEP) * STEP));
+const LADDER = [0.5, 0.25, 0.125]; // zooms below 1
+const SLACK = 48; // world px the view may drift past the campus edge when the campus is larger than the view
+const PAD = 48; // world px of lawn around the content that fit-to-view may crop
 const snapPx = (v: number) => Math.round(v * DPR) / DPR;
 const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 
@@ -34,6 +36,8 @@ export class Camera {
   worldW = 1;
   worldH = 1;
   private flight: Flight | null = null;
+  /** True while the view is the "whole campus" framing; panning or zooming by hand clears it. */
+  framed = false;
 
   constructor(
     private world: Container,
@@ -42,28 +46,52 @@ export class Camera {
     private reducedMotion: () => boolean,
   ) {}
 
-  setWorldSize(w: number, h: number) {
+  /** Sets the campus size; returns true if it changed. */
+  setWorldSize(w: number, h: number): boolean {
+    const changed = w !== this.worldW || h !== this.worldH;
     this.worldW = w;
     this.worldH = h;
+    return changed;
   }
 
-  /** Zoom that shows the whole office in the free area. */
-  fitZoom(): number {
+  /** The zoom that shows the whole campus (its lawn margin may be cropped by PAD) in the free area, on a crisp step. */
+  private fitRaw(): number {
     const { w, h } = this.viewport();
     const i = this.insets();
     const fw = Math.max(100, w - i.left - i.right);
     const fh = Math.max(100, h - i.top - i.bottom);
-    // Let the lawn margin crop a little so we land on a bigger step.
-    const ratio = Math.min(fw / this.worldW, fh / this.worldH) + 0.2;
-    return snapZoom(Math.floor(ratio / STEP) * STEP);
+    const cw = Math.max(1, this.worldW - PAD * 2);
+    const ch = Math.max(1, this.worldH - PAD * 2);
+    const c = Math.min(fw / cw, fh / ch);
+    if (c >= 1) return Math.floor(c / STEP + 1e-6) * STEP;
+    return LADDER.find((z) => z <= c + 1e-6) ?? LADDER[LADDER.length - 1]; // below 1: halves, which stay even under nearest-neighbour scaling
   }
 
+  /** Lowest zoom: normally 1, halves of it when a big campus needs that to fit. */
+  minZoom(): number {
+    return Math.min(MIN_ZOOM, this.fitRaw());
+  }
+
+  private snap(z: number) {
+    const lo = this.minZoom();
+    if (z < 1) return Math.max(lo, LADDER.find((l) => l <= z + 1e-6) ?? lo);
+    return Math.min(MAX_ZOOM, Math.round(z / STEP) * STEP);
+  }
+
+  /** Zoom that shows the whole campus in the free area. */
+  fitZoom(): number {
+    return this.snap(this.fitRaw());
+  }
+
+  /** Frames the whole campus, centred in the free area. */
   home(animate = true) {
     this.flyTo(this.worldW / 2, this.worldH / 2, this.fitZoom(), animate);
+    this.framed = true;
   }
 
   flyTo(x: number, y: number, zoom = this.zoom, animate = true) {
-    const z = snapZoom(zoom);
+    this.framed = false;
+    const z = this.snap(zoom);
     if (!animate || this.reducedMotion()) {
       this.flight = null;
       Object.assign(this, { x, y, zoom: z });
@@ -75,9 +103,12 @@ export class Camera {
 
   /** `delta` is in steps (+1 = one step closer). */
   zoomBy(delta: number, anchor?: { x: number; y: number }) {
-    const z = snapZoom(this.zoom + delta * STEP);
+    const z = this.snap(
+      delta < 0 && this.zoom <= 1 ? this.zoom / 2 : delta > 0 && this.zoom < 1 ? this.zoom * 2 : this.zoom + delta * STEP,
+    );
     if (z === this.zoom) return;
     this.flight = null;
+    this.framed = false;
     if (anchor) {
       // Keep the world point under the cursor fixed.
       const before = this.screenToWorld(anchor.x, anchor.y);
@@ -91,6 +122,7 @@ export class Camera {
 
   panBy(dxScreen: number, dyScreen: number) {
     this.flight = null;
+    this.framed = false;
     this.x -= dxScreen / this.zoom;
     this.y -= dyScreen / this.zoom;
     this.apply();
@@ -124,11 +156,18 @@ export class Camera {
   }
 
   apply() {
-    // Keep at least part of the office on screen.
-    const m = 60;
-    this.x = Math.max(-m, Math.min(this.worldW + m, this.x));
-    this.y = Math.max(-m, Math.min(this.worldH + m, this.y));
     const { cx, cy } = this.centre();
+    const { w, h } = this.viewport();
+    const i = this.insets();
+    // Keep the campus in view: centred when it is smaller than the free area, else the edge stops the view (with some slack).
+    const fit = (pos: number, world: number, view: number) => {
+      const half = view / 2 / this.zoom;
+      if (world <= half * 2) return world / 2;
+      const m = half - SLACK > 0 ? SLACK : 0;
+      return Math.max(half - m, Math.min(world - half + m, pos));
+    };
+    this.x = fit(this.x, this.worldW, Math.max(100, w - i.left - i.right));
+    this.y = fit(this.y, this.worldH, Math.max(100, h - i.top - i.bottom));
     this.world.scale.set(this.zoom);
     this.world.position.set(snapPx(cx - this.x * this.zoom), snapPx(cy - this.y * this.zoom));
   }

@@ -82,12 +82,14 @@ export class OfficeScene {
     this.cleanups.push(useOffice.subscribe((s, prev) => (s.snap !== prev.snap || s.epoch !== prev.epoch) && sync()));
     this.cleanups.push(
       useUi.subscribe((s, prev) => {
+        // The free area changes when a drawer opens or closes: keep a framed campus framed, else just re-clamp.
+        if (s.drawer !== prev.drawer) this.reframe(true);
         if (s.focus && s.focus !== prev.focus) this.focusOn(s.focus.target);
         if (s.zoomRequest && s.zoomRequest !== prev.zoomRequest) this.camera.zoomBy(s.zoomRequest.delta);
       }),
     );
     this.cleanups.push(attachInput(this));
-    this.app.renderer.on("resize", () => this.camera.apply());
+    this.app.renderer.on("resize", () => this.reframe(false));
     this.app.ticker.add((tk) => this.frame(Math.min(0.1, tk.deltaMS / 1000)));
     // Dev-only handles for debugging from the console.
     if (import.meta.env.DEV) Object.assign(window, { __hqScene: this, __hqStore: useOffice });
@@ -108,8 +110,17 @@ export class OfficeScene {
     }
     this.staticTex?.destroy(true);
     this.staticTex = tex;
-    this.camera.setWorldSize(l.worldW, l.worldH);
+    // A bigger or smaller campus (a project room was added or removed) re-frames smoothly unless the user has moved the view.
+    const resized = this.camera.setWorldSize(l.worldW, l.worldH);
+    if (resized && this.camera.framed) this.camera.home();
+    else this.camera.apply();
     this.slowAcc = 1;
+  }
+
+  /** After the free area changes: re-frame the whole campus if that is what the user is looking at, else keep the view in bounds. */
+  private reframe(animate: boolean) {
+    if (this.camera.framed) this.camera.home(animate);
+    else this.camera.apply();
   }
 
   // ------------------------------------------------------------ queries
