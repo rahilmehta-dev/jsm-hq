@@ -246,18 +246,18 @@ function RoomCard({ room, scoped, statuses }: { room: RoomView; scoped: boolean;
   };
   const reporting = workers.some((w) => statuses?.[roomWorkerKey(room.id, w.id, scoped)]);
   return (
-    <div className="rounded-[4px] border border-ink bg-white p-3" role="group" aria-label={`Project room ${room.name}`}>
+    <GroupBox title={`Room · ${room.name}`}>
       <div className="mb-2 flex flex-wrap items-end gap-3">
         <div className="min-w-[220px] max-w-[360px] flex-1">
           <Field label="Room name">
             <CommitInput className="field" value={room.name} placeholder="Job referrals" onCommit={(v) => save({ name: v.trim() || "Project room" })} />
           </Field>
         </div>
-        <span className="chip" style={{ ["--c" as string]: reporting ? "#d9eedf" : "#f5e2b8" }}>
+        <span className="chip" style={{ ["--c" as string]: reporting ? "#cfe9d5" : "#f5e2b8" }}>
           {reporting ? "Project connected" : room.demo === false ? "Waiting for a project" : "Demo animation"}
         </span>
         <button
-          className="btn ml-auto px-2 text-[13px] text-red"
+          className="btn ml-auto px-2 text-[13px]"
           onClick={() => window.confirm(`Remove the project room "${room.name}" and its ${workers.length} worker${workers.length === 1 ? "" : "s"}?`) && officeActions.removeProjectRoom(room.id)}
         >
           Remove room
@@ -322,7 +322,7 @@ function RoomCard({ room, scoped, statuses }: { room: RoomView; scoped: boolean;
           Play the demo animation until a project connects
         </label>
       )}
-    </div>
+    </GroupBox>
   );
 }
 
@@ -332,8 +332,7 @@ function Connect({ api, rooms, scoped }: { api: { url: string; token: string } |
   const room = rooms.find((r) => r.id === pick) ?? rooms[0];
   const vars = (token: string) => `export HQ_ROOM_URL=${api?.url}\nexport HQ_ROOM_TOKEN=${token}${scoped && room ? `\nexport HQ_ROOM_ID=${room.id}` : ""}`;
   return (
-    <div className="mt-3 rounded-[4px] border border-ink bg-cream p-3">
-      <div className="mb-1 text-[13px] font-bold">Connect a project</div>
+    <GroupBox title="Connect a project" className="mt-3">
       <p className="mb-2 text-[12px] text-muted">
         Any project can create its room and show what its workers do, through a small local HTTP API. Set these variables in the project, then use the Python or Node helper in <code>sdk/</code> (see <code>docs/project-rooms.md</code>).
         {scoped ? " With several rooms, each project also sets its own room id." : ""}
@@ -366,7 +365,7 @@ function Connect({ api, rooms, scoped }: { api: { url: string; token: string } |
       ) : (
         <p className="text-[12px] text-muted">Available when you run My HQ on a repo (not in the demo).</p>
       )}
-    </div>
+    </GroupBox>
   );
 }
 

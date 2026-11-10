@@ -32,10 +32,10 @@ const CORRIDOR = 1; // extra empty tiles between sections (the 1-tile gutter of 
 /** Which part of the AI agents room an agent sits in: its CLI's section, or the local-model section. */
 export type SectionId = "claude" | "codex" | "google" | "local";
 export const SECTIONS: { id: SectionId; label: string; color: string }[] = [
-  { id: "claude", label: "CLAUDE CODE", color: "#d97757" },
-  { id: "codex", label: "CODEX", color: "#3aa675" },
-  { id: "google", label: "ANTIGRAVITY", color: "#4a86e8" },
-  { id: "local", label: "LOCAL MODELS", color: "#8e6bd1" },
+  { id: "claude", label: "CLAUDE CODE", color: "#b0735a" },
+  { id: "codex", label: "CODEX", color: "#5f9a82" },
+  { id: "google", label: "ANTIGRAVITY", color: "#6f8fb8" },
+  { id: "local", label: "LOCAL MODELS", color: "#8c7fae" },
 ];
 export function sectionOf(a: AgentConfig): SectionId {
   if (a.provider === "ollama" && supportsOllama(a.cli)) return "local";
