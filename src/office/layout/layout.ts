@@ -6,13 +6,15 @@
 //   │ Desk grid (7×7 cubicles, pitch 8)   │ Review column     │        │
 //   │ ════════════════ PR belt ═══════════╪═ gate ══════════════╗     │
 //   └──────────────────────────────────────────────────────────╨─────┘
+//   Garden courtyard on the lawn in front of the entrance (left).
 
 import { supportsOllama, type AgentConfig, type Environment, type HqConfig, type ProjectWorkerKind } from "../../data/types";
 import { deskCarpets } from "../engine/palette";
 import { WalkGrid, type Tile } from "../engine/path";
 
 export const TS = 16;
-export const MARGIN = 3;
+export const MARGIN = 4; // lawn around the building (tiles)
+export const MARGIN_L = 9; // wider on the entrance side: the garden courtyard sits there
 
 const LEAD_W = 20;
 const MIN_LOUNGE_W = 9;
@@ -119,6 +121,7 @@ export interface OfficeLayout {
   sections: Section[];
   corridors: { x0: number; w: number }[]; // the empty lanes between sections (tiles)
   projectRoom: ProjectRoomLayout | null;
+  courtyard: PxRect; // the central garden in front of the entrance, world px
   belt: { y: number; x0: number; x1: number; topY: number | null }; // px; topY = vertical run end
   gate: PxRect | null;
   prBoard: PxRect | null;
@@ -194,7 +197,7 @@ export function generateLayout(config: HqConfig, envs: Environment[]): OfficeLay
   const H = Math.max(yb + 3, minH, room ? TOP_Y + 4 + projRows * STATION_H + 2 : 0);
   const W = 1 + mainW + projTiles + (hasServer ? 1 + srW : 0) + 1;
 
-  const ox = MARGIN * TS;
+  const ox = MARGIN_L * TS;
   const oy = MARGIN * TS;
   const px = (tx: number) => ox + tx * TS;
   const py = (ty: number) => oy + ty * TS;
@@ -342,7 +345,7 @@ export function generateLayout(config: HqConfig, envs: Environment[]): OfficeLay
     H,
     ox,
     oy,
-    worldW: (W + MARGIN * 2) * TS,
+    worldW: (W + MARGIN_L + MARGIN) * TS,
     worldH: (H + MARGIN * 2) * TS,
     mainW,
     grid,
@@ -353,6 +356,7 @@ export function generateLayout(config: HqConfig, envs: Environment[]): OfficeLay
     sections,
     corridors,
     projectRoom,
+    courtyard: { x: TS, y: oy + 5 * TS, w: ox - 2 * TS, h: Math.max(8, H - 8) * TS },
     belt: { y: beltY, x0: px(2), x1: beltX1, topY: beltTop },
     gate,
     prBoard,
