@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { SimSpeed } from "../../data/source";
 import { officeActions, selectAttention, useOffice } from "../../store/office";
 import { ui, useUi } from "../../store/ui";
+import { UsageBattery } from "./UsagePanel";
 
 const SPEEDS: SimSpeed[] = [1, 2, 4];
 
@@ -70,6 +71,8 @@ export function TopBar() {
         </span>
       </div>
       <div className="flex-1" />
+
+      <UsageBattery />
 
       <div
         className="flex items-center gap-2 whitespace-nowrap border border-ink bg-cream-2 px-2 py-0 text-[12px] text-ink"

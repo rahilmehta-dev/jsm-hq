@@ -17,6 +17,7 @@ import { buildStatic } from "./draw/static";
 import { Camera } from "./engine/camera";
 import { C } from "./engine/palette";
 import { labelReg } from "./engine/font";
+import { exhaustedAgentIds } from "../ui/hud/usageLevel";
 import { GfxPen } from "./engine/pen";
 import { canvasTexture } from "./engine/textures";
 import type { OfficeLayout, PxRect } from "./layout/layout";
@@ -190,6 +191,7 @@ export class OfficeScene {
     this.camera.update(dt);
 
     const team = selectTeam(snap);
+    const exhausted = exhaustedAgentIds(snap.usage);
     const stateMap = new Map(team.map((a) => [a.config.id, a.status.state]));
 
     // bots
@@ -206,6 +208,7 @@ export class OfficeScene {
         bot.path = [];
         bot.pause = 0;
       }
+      bot.charging = exhausted.has(bot.config.id);
       think(bot, l, state, t, this.rand);
       bot.move(dt, l);
       bot.render(t, state);
@@ -308,7 +311,7 @@ export class OfficeScene {
     }
     for (const bot of this.bots.values()) {
       const state = states.get(bot.config.id) ?? "idle";
-      drawEmote(po, bot, state, t, t);
+      drawEmote(po, bot, state, this.reducedMotion ? 0 : t, t);
       if (bot.path.length || this.hover?.agentId === bot.config.id) drawNameTag(po, bot);
     }
     this.effects.draw(po, (id) => {

@@ -24,6 +24,8 @@ export class Bot {
   face: Face = "up";
   seated = false;
   errand: Errand | null = null;
+  /** Its model budget is spent: it rests in the lounge until the budget resets. */
+  charging = false;
   pause = 0; // seconds to linger before the next idle errand
   emote: { type: EmoteType; until: number } | null = null;
   carry: string | null = null; // prKey of the PR being carried
@@ -105,6 +107,21 @@ export class Bot {
 /** Decides each bot's next move from its agent's state. */
 export function think(bot: Bot, l: OfficeLayout, state: AgentState, simT: number, rand: () => number) {
   if (bot.path.length) return;
+  if (bot.charging) {
+    // Out of tokens: walk to a lounge spot (the same spots coffee uses) and stay put, facing the room.
+    const spot = l.lounge.coffee[bot.index % Math.max(1, l.lounge.coffee.length)];
+    bot.errand = null;
+    bot.emote = null;
+    if (spot) {
+      const c = tileCentre(l, spot);
+      if (Math.abs(bot.x - c.x) > 1 || Math.abs(bot.y - c.y) > 1) bot.goTo(l, spot);
+      else {
+        bot.seated = false;
+        bot.face = "down";
+      }
+    }
+    return;
+  }
   const seat = seatOf(bot, l);
   const atSeat = seat && Math.abs(bot.x - tileCentre(l, seat).x) < 1 && Math.abs(bot.y - tileCentre(l, seat).y) < 1;
 

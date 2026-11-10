@@ -3,7 +3,7 @@
 import type { AgentState } from "../../data/types";
 import { stateStyle } from "../../theme/tokens";
 import type { Bot } from "../actors/bots";
-import { tag, text } from "../engine/font";
+import { labelReg, tag, text } from "../engine/font";
 import { C } from "../engine/palette";
 import { ellipse, type Pen } from "../engine/pen";
 import type { PxRect } from "../layout/layout";
@@ -57,7 +57,11 @@ function bubble(p: Pen, cx: number, y: number, fill: string = C.white) {
 export function drawEmote(p: Pen, bot: Bot, state: AgentState, t: number, simT: number) {
   if (bot.carry !== null) return;
   let type: string | null = null;
-  if (bot.emote && simT < bot.emote.until) type = bot.emote.type;
+  if (bot.charging && !bot.path.length) {
+    // Resting in the lounge: slow, gentle zzz (static under reduced motion is handled by the caller's t) and a Charging plate.
+    labelReg.dynamic.push({ text: "CHARGING", x: Math.round(bot.x), y: bot.headY - 18, prio: 2, accent: bot.color });
+    type = "zz";
+  } else if (bot.emote && simT < bot.emote.until) type = bot.emote.type;
   else if (bot.path.length) type = null;
   else if (state === "needs-input") type = "bang";
   else if (state === "in-review") type = "wait";
