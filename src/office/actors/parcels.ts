@@ -8,7 +8,8 @@ import type { OfficeLayout } from "../layout/layout";
 type Mode = "carry" | "belt" | "scan" | "fly" | "home" | "gone";
 
 export interface Parcel {
-  num: number;
+  key: string; // prKey of its PR (the number alone repeats across repos)
+  num: number; // the PR number, for the tag
   authorId: string;
   mode: Mode;
   s: number; // distance along the belt
@@ -57,7 +58,7 @@ export interface ParcelHooks {
   onMerged(p: Parcel): void;
 }
 
-export function updateParcels(parcels: Parcel[], prs: Map<number, PullRequest>, path: BeltPath, dt: number, hooks: ParcelHooks) {
+export function updateParcels(parcels: Parcel[], prs: Map<string, PullRequest>, path: BeltPath, dt: number, hooks: ParcelHooks) {
   // Fly-ins / fly-outs
   for (const p of parcels) {
     if (p.mode !== "fly" || !p.fly) continue;
@@ -73,7 +74,7 @@ export function updateParcels(parcels: Parcel[], prs: Map<number, PullRequest>, 
   let scanning = onBelt.some((p) => p.mode === "scan");
 
   for (const p of parcels) {
-    const pr = prs.get(p.num);
+    const pr = prs.get(p.key);
     if (!pr || p.mode === "gone" || p.mode === "fly" || p.mode === "carry") continue;
     const desk = hooks.deskPos(p.authorId);
 
@@ -95,7 +96,7 @@ export function updateParcels(parcels: Parcel[], prs: Map<number, PullRequest>, 
   // Move along the belt, keeping a gap behind the parcel ahead.
   let ahead: Parcel | null = null;
   for (const p of onBelt) {
-    const pr = prs.get(p.num);
+    const pr = prs.get(p.key);
     if (!pr || p.mode === "fly" || p.mode === "home") continue;
     let target: number;
     if (pr.merged) target = path.len;

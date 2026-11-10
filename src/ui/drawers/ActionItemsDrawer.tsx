@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { ActionItem } from "../../data/types";
-import { officeActions, selectAttention, useOffice } from "../../store/office";
+import { prKey, type ActionItem } from "../../data/types";
+import { officeActions, prLabel, selectAttention, useOffice } from "../../store/office";
 import { ui } from "../../store/ui";
 import { ago, Dot, SectionTitle, useNow } from "../kit";
 import { DrawerHeader } from "./Drawer";
@@ -59,16 +59,16 @@ export function ActionItemsDrawer() {
               ))}
               {a.readyPrs.map((p) =>
                 p.url ? (
-                  <li key={`pr-${p.number}`} className="flex items-center gap-2 border-[3px] border-ink bg-white px-2.5 py-1.5">
+                  <li key={`pr-${prKey(p)}`} className="flex items-center gap-2 border-[3px] border-ink bg-white px-2.5 py-1.5">
                     <span className="flex-1">
-                      PR <b>#{p.number}</b> {p.title} passed review and is ready to merge
+                      PR <b>{prLabel(p, snap)}</b> {p.title} passed review and is ready to merge
                     </span>
                     <a className="btn px-2 text-[12px]" href={p.url} target="_blank" rel="noreferrer">
                       Open ↗
                     </a>
                   </li>
                 ) : (
-                  <Row key={`pr-${p.number}`} text={`PR #${p.number} ${p.title} passed review and is ready to merge`} onOpen={() => ui.openPrs()} />
+                  <Row key={`pr-${prKey(p)}`} text={`PR ${prLabel(p, snap)} ${p.title} passed review and is ready to merge`} onOpen={() => ui.openPrs()} />
                 ),
               )}
             </ul>

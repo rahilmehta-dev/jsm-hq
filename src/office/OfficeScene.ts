@@ -39,8 +39,8 @@ export class OfficeScene {
   belt!: BeltPath;
   bots = new Map<string, Bot>();
   parcels: Parcel[] = [];
-  prs = new Map<number, PullRequest>();
-  prevReview = new Map<number, ReviewState>();
+  prs = new Map<string, PullRequest>(); // by prKey
+  prevReview = new Map<string, ReviewState>(); // by prKey
   seenActivity = new Set<string>();
   seenMessages = new Set<string>();
   notes = new PlanNotes();
@@ -200,7 +200,7 @@ export class OfficeScene {
     this.effects.update(dt);
     for (const [k, v] of this.pulses) this.pulses.set(k, Math.max(0, v - dt * 0.6));
     if (this.gateMode.mode !== "idle" && this.gateMode.mode !== "reviewing" && t - this.gateMode.at > 1.6) this.gateMode = { mode: "idle", at: t };
-    const scanning = this.parcels.some((p) => p.mode === "scan" && this.prs.get(p.num)?.review === "reviewing");
+    const scanning = this.parcels.some((p) => p.mode === "scan" && this.prs.get(p.key)?.review === "reviewing");
     if (this.gateMode.mode === "idle" && scanning) this.gateMode = { mode: "reviewing", at: t };
     if (this.gateMode.mode === "reviewing" && !scanning) this.gateMode = { mode: "idle", at: t };
 
@@ -248,7 +248,7 @@ export class OfficeScene {
     live.drawBelt(p, l, this.reducedMotion ? 0 : t);
     for (const parcel of this.parcels) {
       const pos = parcelPos(parcel, this.belt);
-      const pr = this.prs.get(parcel.num);
+      const pr = this.prs.get(parcel.key);
       if (!pos || !pr) continue;
       const inGate = l.gate && parcel.mode === "scan";
       if (!inGate) live.drawParcel(p, pos.x, pos.y - pos.lift, parcel.num, this.colorOf(pr.authorId), true);

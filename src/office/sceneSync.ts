@@ -1,7 +1,7 @@
 // Reconciles the scene's actors with a new snapshot: layout rebuilds, bots,
 // parcels, and one-off reactions to new activity and Team MCP messages.
 
-import type { OfficeSnapshot, ReviewState } from "../data/types";
+import { prKey, type OfficeSnapshot, type ReviewState } from "../data/types";
 import { Bot, seatOf, sendOnErrand } from "./actors/bots";
 import { BeltPath, type Parcel } from "./actors/parcels";
 import { C } from "./engine/palette";
@@ -62,13 +62,14 @@ export function syncScene(s: OfficeScene, snap: OfficeSnapshot, epoch: number) {
 
   // ---------------------------------------------------------- parcels
   // Closed-without-merge PRs leave the office.
-  const prs = new Map(snap.pullRequests.filter((p) => !p.closed).map((p) => [p.number, p]));
+  const prs = new Map(snap.pullRequests.filter((p) => !p.closed).map((p) => [prKey(p), p]));
   s.prs = prs;
-  s.parcels = s.parcels.filter((p) => prs.has(p.num) && p.mode !== "gone");
+  s.parcels = s.parcels.filter((p) => prs.has(p.key) && p.mode !== "gone");
   for (const pr of snap.pullRequests) {
-    const prev = s.prevReview.get(pr.number);
-    if (prev === undefined && !pr.merged && !s.parcels.some((p) => p.num === pr.number)) {
-      const parcel: Parcel = { num: pr.number, authorId: pr.authorId, mode: "belt", s: s.dropS(pr.authorId), fly: null };
+    const key = prKey(pr);
+    const prev = s.prevReview.get(key);
+    if (prev === undefined && !pr.merged && !s.parcels.some((p) => p.key === key)) {
+      const parcel: Parcel = { key, num: pr.number, authorId: pr.authorId, mode: "belt", s: s.dropS(pr.authorId), fly: null };
       s.parcels.push(parcel);
       const bot = s.bots.get(pr.authorId);
       const desk = l.desks.find((d) => d.agentId === pr.authorId);
@@ -77,7 +78,7 @@ export function syncScene(s: OfficeScene, snap: OfficeSnapshot, epoch: number) {
         else if (pr.review === "passed" && s.belt.gateExit !== null) parcel.s = s.belt.gateExit;
       } else if (bot && desk) {
         parcel.mode = "carry";
-        bot.carry = pr.number;
+        bot.carry = key;
         sendOnErrand(bot, l, {
           kind: "drop",
           deadline: s.t + 8,
@@ -92,7 +93,7 @@ export function syncScene(s: OfficeScene, snap: OfficeSnapshot, epoch: number) {
       }
     }
     if (prev !== undefined && prev !== pr.review) reviewChanged(s, pr.review);
-    s.prevReview.set(pr.number, pr.review);
+    s.prevReview.set(key, pr.review);
   }
 
   // ---------------------------------------------------------- activity + messages
