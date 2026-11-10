@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { CLI_LABEL, HUMAN_ID, type AccessRequest, type AgentConfig, type AgentStatus, type OfficeSnapshot } from "../../data/types";
 import { officeActions, prLabel, prOfTask, useOffice } from "../../store/office";
 import { ui, type AgentTab } from "../../store/ui";
-import { ago, Dot, Portrait, ReviewChip, SectionTitle, StateChip, Tabs, useNow } from "../kit";
+import { ago, Busy, Dot, Empty, Portrait, ReviewChip, SectionTitle, StateChip, Tabs, useNow } from "../kit";
 import { DrawerHeader } from "./Drawer";
 import { PortBanner, PortsRow } from "./Ports";
 import { TerminalView } from "./TerminalView";
@@ -204,7 +204,12 @@ function AccessCard({ request, agent }: { request: AccessRequest; agent: AgentCo
   );
 }
 
-const SESSION_COLOR = { running: "#00e436", starting: "#29adff", stopped: "#83769c", failed: "#ff004d" } as const;
+const SESSION_CHIP = {
+  running: { fill: "#cfe9d5", mark: "#1d7a3a" },
+  starting: { fill: "#cfe4f5", mark: "#1b6ca8" },
+  stopped: { fill: "#e4e4e4", mark: "#5c5c5c" },
+  failed: { fill: "#f6cfcf", mark: "#b3261e" },
+} as const;
 
 /** Session state + Start/Stop + the agent's folder. */
 function SessionBar({ agent, status }: { agent: AgentConfig; status: AgentStatus }) {
@@ -212,7 +217,7 @@ function SessionBar({ agent, status }: { agent: AgentConfig; status: AgentStatus
   const live = useOffice((st) => st.live);
   return (
     <div className="flex items-center gap-2 border-b border-line bg-cream px-3 py-1.5 text-[13px]">
-      <span className={`chip chip-dot ${s.state === "starting" ? "blink" : ""}`} style={{ ["--c" as string]: SESSION_COLOR[s.state] }}>
+      <span className={`chip chip-dot ${s.state === "starting" ? "blink" : ""}`} style={{ ["--c" as string]: SESSION_CHIP[s.state].fill, ["--m" as string]: SESSION_CHIP[s.state].mark }}>
         {s.state === "running" ? "Session running" : s.state === "starting" ? "Starting" : s.state === "failed" ? "Failed" : "Stopped"}
       </span>
       <span className="min-w-0 flex-1 truncate font-term text-[15px] text-muted" title={s.workspace ?? undefined}>
@@ -241,36 +246,38 @@ function NotRunning({ agent, status }: { agent: AgentConfig; status: AgentStatus
   const setup = useOffice((st) => st.snap?.setup);
   const blocked = agent.mode === "sandbox" ? !setup?.sandboxReady : !setup?.localReady;
   return (
-    <div className="grid h-full place-items-center bg-well p-6 text-center text-well-ink">
+    <div className={`grid h-full place-items-center bg-well p-6 text-center text-well-ink ${s.state === "starting" ? "" : "stopped-dark"}`}>
       <div className="max-w-[380px]">
         {s.state === "starting" ? (
-          <p className="blink font-term text-[22px]">{s.detail ?? "Starting…"}</p>
+          <div className="mx-auto w-[260px] text-left [&_.progress]:border-well-ink [&_.progress]:bg-well">
+            <Busy>{s.detail ?? "Starting…"}</Busy>
+          </div>
         ) : (
           <>
             <p className="mb-2 font-term text-[22px]">{s.state === "failed" ? `${agent.name} could not start` : `${agent.name} isn't running`}</p>
-            {s.detail && <pre className="mb-3 whitespace-pre-wrap border-2 border-bad-fill px-2 py-1 text-left font-term text-[16px] text-[#ffd0dc]">{s.detail}</pre>}
+            {s.detail && <pre className="mb-3 whitespace-pre-wrap border border-well-err px-2 py-1 text-left font-term text-[16px] text-well-err">{s.detail}</pre>}
             <p className="mb-4 text-[13px] text-well-dim">
               {agent.mode === "sandbox"
                 ? `Start runs ${CLI_LABEL[agent.cli]} in a Docker Sandbox on this agent's own copy of the repo.`
                 : `Start runs ${CLI_LABEL[agent.cli]} locally in this agent's own copy of the repo, with permission prompts on.`}
             </p>
             {agent.cli === "codex" && (
-              <p className="mb-4 text-[12px] text-[#ffc14d]">
+              <p className="mb-4 text-[12px] text-well-ink">
                 First start only: Codex asks you to trust this folder and HQ's hooks. Choose <b>Yes</b>, then <b>Trust all and continue</b>, in the terminal.
               </p>
             )}
             {agent.provider === "ollama" && (
-              <p className="mb-4 text-[12px] text-[#ffc14d]">
+              <p className="mb-4 text-[12px] text-well-ink">
                 Runs {agent.ollamaModel || "a local model"} through Ollama. Tool-calling quality varies a lot by local model; if the agent fumbles its tools, try a different model.
               </p>
             )}
             {agent.cli === "antigravity" && (
-              <p className="mb-4 text-[12px] text-[#ffc14d]">
+              <p className="mb-4 text-[12px] text-well-ink">
                 First start: Antigravity runs its setup in the terminal (colour scheme, terms, sign-in in your browser). Do it once there. HQ can't see its approval prompts, so an agent waiting on one shows as working: check its terminal.
               </p>
             )}
             {agent.cli === "gemini" && (
-              <p className="mb-4 text-[12px] text-[#ffc14d]">
+              <p className="mb-4 text-[12px] text-well-ink">
                 First start only: Gemini CLI asks you to trust this folder. Choose <b>Trust folder</b> in the terminal, or HQ's hooks and tools won't load.
               </p>
             )}
@@ -352,7 +359,7 @@ function TaskTab({ snap, agent, taskId }: { snap: OfficeSnapshot; agent: AgentCo
           )}
         </div>
       ) : (
-        <p className="mb-4 text-[15px] text-muted">No task right now.</p>
+        <Empty className="mb-4">No task right now.</Empty>
       )}
       <SectionTitle>Assign a task</SectionTitle>
       <div className="flex gap-2">
@@ -464,7 +471,7 @@ function MessagesTab({ snap, agent }: { snap: OfficeSnapshot; agent: AgentConfig
       <div className="scroll-thin min-h-0 flex-1 overflow-y-auto p-4">
         <SectionTitle>Team MCP messages</SectionTitle>
         <p className="mb-3 text-[13px] text-muted">Agents can't reach each other's sandboxes. Every message goes through HQ.</p>
-        {list.length === 0 && <p className="text-[15px] text-muted">No messages yet.</p>}
+        {list.length === 0 && <Empty>No messages yet.</Empty>}
         <ul className="flex flex-col gap-2">
           {list.map((m) => {
             const out = m.fromId === agent.id;

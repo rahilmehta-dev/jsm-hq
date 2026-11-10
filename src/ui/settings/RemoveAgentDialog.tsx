@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { AgentConfig } from "../../data/types";
 import { officeActions, useOffice } from "../../store/office";
+import { Busy } from "../kit";
 
 /** Confirms removing an agent and lets you choose what to delete with it. */
 export function RemoveAgentDialog({ agent, onClose }: { agent: AgentConfig; onClose: () => void }) {
@@ -33,11 +34,15 @@ export function RemoveAgentDialog({ agent, onClose }: { agent: AgentConfig; onCl
         <h3 className="mb-1 text-[17px] font-bold">Remove {agent.name} from the team?</h3>
         <p className="mb-3 text-[13px] text-muted">Their session stops, and their unfinished tasks go back to the board.</p>
 
-        {loading && <p className="blink mb-3 font-term text-[18px]">Checking {agent.name}'s folder…</p>}
+        {loading && (
+          <div className="mb-3">
+            <Busy>Checking {agent.name}'s folder…</Busy>
+          </div>
+        )}
 
         {info && (
           <div className="mb-3 flex flex-col gap-3">
-            <label className={`flex items-start gap-2 border border-ink bg-white p-2 ${info.sandboxExists ? "" : "opacity-60"}`}>
+            <label className={`flex items-start gap-2 border border-ink bg-white p-2 ${info.sandboxExists ? "" : "stopped"}`}>
               <input type="checkbox" className="mt-1" checked={deleteSandbox && info.sandboxExists} disabled={!info.sandboxExists} onChange={(e) => setDeleteSandbox(e.target.checked)} />
               <span className="min-w-0">
                 <b className="text-[15px]">Delete {agent.name}'s sandbox (the VM)</b>
@@ -46,7 +51,7 @@ export function RemoveAgentDialog({ agent, onClose }: { agent: AgentConfig; onCl
               </span>
             </label>
 
-            <label className={`flex items-start gap-2 border-2 p-2 ${atRisk && deleteFolder ? "border-ink bg-bad-fill" : "border-ink bg-white"} ${info.managed && info.exists ? "" : "opacity-60"}`}>
+            <label className={`flex items-start gap-2 border p-2 ${atRisk && deleteFolder ? "border-ink bg-bad-fill" : "border-ink bg-white"} ${info.managed && info.exists ? "" : "stopped"}`}>
               <input type="checkbox" className="mt-1" checked={deleteFolder} disabled={!info.managed || !info.exists} onChange={(e) => setDeleteFolder(e.target.checked)} />
               <span className="min-w-0">
                 <b className="text-[15px]">Delete {agent.name}'s folder</b>
@@ -56,7 +61,7 @@ export function RemoveAgentDialog({ agent, onClose }: { agent: AgentConfig; onCl
                 {info.managed && info.exists && (
                   <span className={`block text-[12px] ${atRisk ? "font-semibold text-red" : "text-muted"}`}>
                     {atRisk
-                      ? `⚠ ${[info.unpushedCommits ? `${info.unpushedCommits} commit${info.unpushedCommits > 1 ? "s" : ""} not pushed` : "", info.changedFiles ? `${info.changedFiles} file${info.changedFiles > 1 ? "s" : ""} changed` : ""].filter(Boolean).join(" · ")} — deleting loses them.`
+                      ? `Warning: ${[info.unpushedCommits ? `${info.unpushedCommits} commit${info.unpushedCommits > 1 ? "s" : ""} not pushed` : "", info.changedFiles ? `${info.changedFiles} file${info.changedFiles > 1 ? "s" : ""} changed` : ""].filter(Boolean).join(" · ")} — deleting loses them.`
                       : "Everything here is committed and pushed."}
                   </span>
                 )}

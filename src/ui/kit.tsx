@@ -66,6 +66,47 @@ export function SectionTitle({ children }: { children: ReactNode }) {
   return <h3 className="mb-2 border-b border-ink pb-1 text-[12px] font-bold uppercase tracking-[0.08em] text-ink-2">{children}</h3>;
 }
 
+/** One-line empty state: short sentence, no icons. */
+export function Empty({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <p className={`text-[13px] text-ink-2 ${className}`}>{children}</p>;
+}
+
+/** Busy: a label over a flat striped bar. */
+export function Busy({ children }: { children: ReactNode }) {
+  return (
+    <div role="status" aria-live="polite" className="flex flex-col gap-1.5">
+      <span className="text-[13px] font-semibold">{children}</span>
+      <div className="progress" aria-hidden>
+        <i />
+      </div>
+    </div>
+  );
+}
+
+/** A plain, original 16px "something went wrong" face: square, two x eyes, a flat frown. */
+export function ErrorFace({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" shapeRendering="crispEdges" aria-hidden className="shrink-0">
+      <rect x="1" y="1" width="14" height="14" fill="#fff" stroke="#000" strokeWidth="1" />
+      <path d="M4 5l2 2M6 5l-2 2M10 5l2 2M12 5l-2 2" stroke="#000" strokeWidth="1" />
+      <path d="M5 12h6M4 11v1M11 11v1" stroke="#000" strokeWidth="1" fill="none" />
+    </svg>
+  );
+}
+
+/** Gentle error callout: face, bold title, one or two plain lines. */
+export function ErrorNote({ title, children, role = "alert" }: { title: ReactNode; children?: ReactNode; role?: "alert" | "status" }) {
+  return (
+    <div role={role} className="callout">
+      <ErrorFace />
+      <div className="min-w-0 text-[13px] leading-snug">
+        <b className="block text-[14px]">{title}</b>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 /** Classic group box: a fieldset whose legend breaks the 1px top rule. */
 export function GroupBox({ title, children, className = "" }: { title: ReactNode; children: ReactNode; className?: string }) {
   return (

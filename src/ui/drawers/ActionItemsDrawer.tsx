@@ -2,7 +2,7 @@ import { useState } from "react";
 import { prKey, type ActionItem } from "../../data/types";
 import { officeActions, prLabel, selectAttention, useOffice } from "../../store/office";
 import { ui } from "../../store/ui";
-import { ago, Dot, SectionTitle, useNow } from "../kit";
+import { ago, Dot, Empty, SectionTitle, useNow } from "../kit";
 import { DrawerHeader } from "./Drawer";
 
 /** Everything waiting on the user: agents' action items first, then the other things that need them. */
@@ -29,7 +29,7 @@ export function ActionItemsDrawer() {
       <div className="scroll-thin min-h-0 flex-1 overflow-y-auto p-4">
         <SectionTitle>From agents</SectionTitle>
         {open.length === 0 ? (
-          <p className="mb-4 text-[13px] text-muted">No requests. When an agent needs you to do something outside its sandbox, it shows up here.</p>
+          <Empty className="mb-4">Nothing to do. Agents ask here when they need you.</Empty>
         ) : (
           <ul className="mb-4 flex flex-col gap-2">
             {open.map((item) => (

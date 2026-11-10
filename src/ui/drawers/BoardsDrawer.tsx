@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { BoardStatus, Task, TaskStatus } from "../../data/types";
 import { officeActions, prLabel, useOffice } from "../../store/office";
 import { ui, useUi } from "../../store/ui";
-import { Dot } from "../kit";
+import { Dot, Empty } from "../kit";
 import { DrawerHeader } from "./Drawer";
 
 const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
@@ -76,7 +76,7 @@ export function BoardsDrawer({ initialBoardId }: { initialBoardId?: string }) {
             </div>
           );
         })}
-        {tasks.length === 0 && <p className="col-span-full p-6 text-center text-muted">No tasks on this board yet. The lead adds tasks when a board is active.</p>}
+        {tasks.length === 0 && <Empty className="col-span-full p-6 text-center">No tasks on this board yet.</Empty>}
       </div>
     </>
   );
