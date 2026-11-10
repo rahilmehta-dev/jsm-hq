@@ -3,9 +3,9 @@
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { supportsOllama, type AgentConfig, type Board, type HqConfig, type SandboxSettings, type Task } from "../src/data/types";
+import { supportsLocalServer, supportsOllama, type AgentConfig, type Board, type HqConfig, type SandboxSettings, type Task } from "../src/data/types";
 import { LEAD_NAME, WORKER_NAMES } from "../src/data/names";
-import { parseOllamaUrl } from "./ollama";
+import { parseLocalServerUrl, parseOllamaUrl } from "./ollama";
 import { slugify } from "./paths";
 import type { RepoInfo } from "./repo";
 
@@ -78,7 +78,7 @@ export function loadConfig(repo: RepoInfo, port: number): { config: HqConfig; is
       a.mcp ??= [];
       a.cli ??= "claude";
       // Absent = the CLI's own account. A hand-edited or unknown value falls back to that too.
-      if (a.provider !== "ollama" || !supportsOllama(a.cli)) delete a.provider;
+      if (!((a.provider === "ollama" && supportsOllama(a.cli)) || (a.provider === "local" && supportsLocalServer(a.cli)))) delete a.provider;
       a.sandbox.resources ??= { cpus: null, memoryGb: null };
       // Phase D: policy level, proxy and secret names moved to sbx itself.
       const old = a.sandbox as unknown as Record<string, unknown>;
@@ -91,6 +91,7 @@ export function loadConfig(repo: RepoInfo, port: number): { config: HqConfig; is
     found.project.id = slugify(found.project.id ?? found.project.name);
     found.project.path = repo.root;
     if (!parseOllamaUrl(found.project.ollamaUrl)) delete found.project.ollamaUrl;
+    if (!parseLocalServerUrl(found.project.localServerUrl)) delete found.project.localServerUrl;
     // The project room is optional; a malformed one from a hand-edited file is dropped.
     if (found.projectRoom && !Array.isArray(found.projectRoom.workers)) delete found.projectRoom;
     return { config: found, isNew: false };

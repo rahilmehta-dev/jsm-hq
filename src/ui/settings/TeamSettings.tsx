@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { nextAgentName } from "../../data/names";
-import { CLI_LABEL, DEFAULT_OLLAMA_URL, projectRoomsOf, roomWorkerKey, supportsOllama, WORKER_KIND_LABEL, type AgentCli, type AgentConfig, type AgentMode, type ModelProvider, type ProjectRoomConfig, type ProjectWorkerKind, type RoomWorkerStatus } from "../../data/types";
+import { CLI_LABEL, DEFAULT_LOCAL_SERVER_URL, DEFAULT_OLLAMA_URL, LOCAL_SERVER_LABEL, supportsLocalServer, projectRoomsOf, roomWorkerKey, supportsOllama, WORKER_KIND_LABEL, type AgentCli, type AgentConfig, type AgentMode, type ModelProvider, type ProjectRoomConfig, type ProjectWorkerKind, type RoomWorkerStatus } from "../../data/types";
 import { officeActions, useOffice } from "../../store/office";
 import { agentPalette } from "../../theme/tokens";
 import { Field, Portrait, SectionTitle } from "../kit";
@@ -49,6 +49,8 @@ function AgentRow({ agent, expanded, onToggle, onRemove }: { agent: AgentConfig;
   const set = (patch: Parameters<typeof officeActions.updateAgent>[1]) => officeActions.updateAgent(agent.id, patch);
   const ollamaUrl = useOffice((s) => s.snap?.config.project.ollamaUrl);
   const onOllama = agent.provider === "ollama" && supportsOllama(agent.cli);
+  const onLocal = agent.provider === "local" && supportsLocalServer(agent.cli);
+  const localUrl = useOffice((s) => s.snap?.config.project.localServerUrl);
   return (
     <div className="rounded-xl border border-line bg-white">
       <div className="grid grid-cols-[40px_1fr_1fr_150px_130px_auto] items-end gap-2.5 p-2.5">
@@ -111,6 +113,7 @@ function AgentRow({ agent, expanded, onToggle, onRemove }: { agent: AgentConfig;
               <select className="field" value={agent.provider ?? "default"} onChange={(e) => set({ provider: e.target.value as ModelProvider })}>
                 <option value="default">{CLI_LABEL[agent.cli]} account</option>
                 <option value="ollama">Ollama (local model)</option>
+                <option value="local">{LOCAL_SERVER_LABEL}</option>
               </select>
             </Field>
           )}
@@ -124,7 +127,22 @@ function AgentRow({ agent, expanded, onToggle, onRemove }: { agent: AgentConfig;
               </Field>
             </>
           )}
-          {!onOllama && <Field label="Start with model" hint="Optional. Leave empty to use the CLI's default — you can always switch with /model in the terminal. Set it to keep a choice across restarts (e.g. Opus for the lead).">
+          {onLocal && (
+            <>
+              <Field label="Local server model" hint="The model id the server lists at /v1/models. Agents need tool calling, so use a model that supports it.">
+                <div className="flex gap-2">
+                  <CommitInput className="field flex-1" value={agent.localModel ?? ""} placeholder="q2_0" list="local-models" onCommit={(v) => set({ localModel: v.trim() })} />
+                  <button className="btn px-2 text-[13px]" title="Ask the server for its models again" onClick={() => officeActions.recheckSetup()}>
+                    Refresh
+                  </button>
+                </div>
+              </Field>
+              <Field label="Local server address (all agents)" hint="Base address of the server, without /v1. Sandboxes reach localhost through host.docker.internal. If it needs an API key, start HQ with HQ_LOCAL_SERVER_API_KEY set (it is never saved).">
+                <CommitInput className="field font-term text-[17px]" value={localUrl ?? ""} placeholder={DEFAULT_LOCAL_SERVER_URL} onCommit={(v) => officeActions.updateProject({ localServerUrl: v.trim() })} />
+              </Field>
+            </>
+          )}
+          {!onOllama && !onLocal && <Field label="Start with model" hint="Optional. Leave empty to use the CLI's default — you can always switch with /model in the terminal. Set it to keep a choice across restarts (e.g. Opus for the lead).">
             <CommitInput
               className="field"
               value={agent.model}
@@ -360,6 +378,7 @@ function AddAgent() {
   const [cli, setCli] = useState<AgentCli>("claude");
   const [mode, setMode] = useState<AgentMode>("sandbox");
   const team = useOffice((s) => s.snap?.config.team) ?? [];
+  const localModels = useOffice((s) => s.snap?.setup.localModels);
   const suggested = nextAgentName(team.map((a) => a.name));
   const add = () => {
     officeActions.addAgent({ name: name.trim() || suggested, role, cli, mode });
@@ -399,6 +418,11 @@ function AddAgent() {
       </p>
       <datalist id="codex-models">
         <option value="gpt-5.6-sol" />
+      </datalist>
+      <datalist id="local-models">
+        {(localModels ?? []).map((m) => (
+          <option key={m} value={m} />
+        ))}
       </datalist>
       <datalist id="ollama-models">
         <option value="qwen3-coder" />

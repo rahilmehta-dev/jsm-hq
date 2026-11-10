@@ -7,7 +7,7 @@ import { agentRead, agentWrite } from "./lib/agentFs";
 import type { AgentCli, AgentConfig, HqConfig } from "../src/data/types";
 import { adoptRoleFile, excludeFromGit, HOOK_SCRIPT, isOurs, type RoleExtras, hookCommand, hookScriptFor, hqUrl, MCP_CONFIG, ROLE_FILE, roleMd, writeClaudeFiles, writeHookScript } from "./agentFiles";
 import { run } from "./lib/exec";
-import { claudeOllamaEnv, ollamaUrlFor, usesOllama } from "./ollama";
+import { claudeLocalEnv, claudeOllamaEnv, LOCAL_SERVER_KEY_ENV, localServerApiKey, localServerUrlFor, ollamaUrlFor, usesLocalServer, usesOllama, type LocalWire } from "./ollama";
 
 export interface Launch {
   sbxAgent: string; // agent name for `sbx run`
@@ -20,9 +20,12 @@ export interface Launch {
   env?: Record<string, string>;
 }
 
+/** What goes into the files besides the role: `localWire` is the API Codex uses with a local server (probed at start). */
+export type FileExtras = RoleExtras & { localWire?: LocalWire };
+
 export interface CliAdapter {
   /** Writes HQ's files into the agent's folder (all git-excluded). */
-  writeFiles(dir: string, agent: AgentConfig, cfg: HqConfig, token: string, extras?: RoleExtras): Promise<void>;
+  writeFiles(dir: string, agent: AgentConfig, cfg: HqConfig, token: string, extras?: FileExtras): Promise<void>;
   launch(agent: AgentConfig, cfg: HqConfig): Launch;
 }
 
@@ -41,6 +44,11 @@ const claude: CliAdapter = {
       const prompts = agent.mode === "local" ? ["--permission-mode", "default"] : [];
       return { sbxAgent: "claude", args: ["--mcp-config", MCP_CONFIG, "--model", agent.ollamaModel?.trim() ?? "", ...prompts], env: claudeOllamaEnv(agent, cfg) };
     }
+    // Same for a local server (Strata…): the Anthropic Messages API at ANTHROPIC_BASE_URL (Claude Code adds /v1/messages).
+    if (usesLocalServer(agent)) {
+      const prompts = agent.mode === "local" ? ["--permission-mode", "default"] : [];
+      return { sbxAgent: "claude", args: ["--mcp-config", MCP_CONFIG, "--model", agent.localModel?.trim() ?? "", ...prompts], env: claudeLocalEnv(agent, cfg) };
+    }
     // "Opus" / "Sonnet" / "Haiku" → Claude Code's aliases; anything else is passed as a full model id.
     const m = agent.model.trim();
     const model = !m || /^default$/i.test(m) ? null : /^(opus|sonnet|haiku)$/i.test(m) ? m.toLowerCase() : m;
@@ -56,11 +64,12 @@ export const CODEX_CONFIG = ".codex/config.toml";
 const CODEX_EVENTS = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PermissionRequest", "Stop", "SessionEnd"];
 
 const OLLAMA_PROVIDER = "hq-ollama";
+const LOCAL_PROVIDER = "hq-local";
 
 /** TOML basic string (JSON's escaping is valid TOML for these characters). */
 const t = (s: string) => JSON.stringify(s);
 
-export function codexConfig(agent: AgentConfig, cfg: HqConfig, token: string, dir: string, extras: RoleExtras = {}): string {
+export function codexConfig(agent: AgentConfig, cfg: HqConfig, token: string, dir: string, extras: FileExtras = {}): string {
   const url = hqUrl(agent, cfg.project.hqPort);
   const script = hookScriptFor(agent, dir);
   const lines = [
@@ -69,6 +78,7 @@ export function codexConfig(agent: AgentConfig, cfg: HqConfig, token: string, di
     // Top-level keys come before any table. A provider of its own (not Codex's built-in "ollama" one)
     // so the address can be anything, including a sandbox's host.docker.internal.
     ...(usesOllama(agent) ? [`model = ${t(agent.ollamaModel?.trim() ?? "")}`, `model_provider = ${t(OLLAMA_PROVIDER)}`] : []),
+    ...(usesLocalServer(agent) ? [`model = ${t(agent.localModel?.trim() ?? "")}`, `model_provider = ${t(LOCAL_PROVIDER)}`] : []),
     "",
     "[features]",
     "hooks = true",
@@ -78,6 +88,16 @@ export function codexConfig(agent: AgentConfig, cfg: HqConfig, token: string, di
     `http_headers = { Authorization = ${t(`Bearer ${token}`)}, "X-HQ-Agent" = ${t(agent.id)} }`,
   ];
   if (usesOllama(agent)) lines.push("", `[model_providers.${OLLAMA_PROVIDER}]`, 'name = "Ollama"', `base_url = ${t(`${ollamaUrlFor(agent, cfg)}/v1`)}`, 'wire_api = "responses"');
+  // The key (if the server needs one) is read from an environment variable, never written into the file.
+  if (usesLocalServer(agent))
+    lines.push(
+      "",
+      `[model_providers.${LOCAL_PROVIDER}]`,
+      'name = "Local server"',
+      `base_url = ${t(`${localServerUrlFor(agent, cfg)}/v1`)}`,
+      `wire_api = ${t(extras.localWire ?? "responses")}`,
+      ...(localServerApiKey() ? [`env_key = ${t(LOCAL_SERVER_KEY_ENV)}`] : []),
+    );
   for (const event of CODEX_EVENTS)
     lines.push("", `[[hooks.${event}]]`, `[[hooks.${event}.hooks]]`, 'type = "command"', `command = ${t(hookCommand(url, token, agent.id, event, script))}`);
   return lines.join("\n") + "\n";
@@ -96,7 +116,7 @@ const codex: CliAdapter = {
   },
   launch(agent) {
     // On Ollama the model and provider are in the config file written above.
-    if (usesOllama(agent)) return { sbxAgent: "codex", args: [] };
+    if (usesOllama(agent) || usesLocalServer(agent)) return { sbxAgent: "codex", args: [], ...(usesLocalServer(agent) && localServerApiKey() ? { env: { [LOCAL_SERVER_KEY_ENV]: localServerApiKey()! } } : {}) };
     const model = agent.model.trim() && !/^default$/i.test(agent.model.trim()) ? agent.model.trim() : null;
     return { sbxAgent: "codex", args: model ? ["-m", model] : [] };
   },
