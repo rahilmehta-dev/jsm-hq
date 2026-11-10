@@ -156,7 +156,7 @@ export class ProjectActors {
         if (r) ellipse(shadow, Math.round(r.x), Math.round(r.y) + 1, 4, 1, C.shadow, 0.3);
         const screen = st.state === "error" ? "needs-input" : st.state === "done" ? "review-passed" : st.state === "working" ? "working" : "idle";
         drawScreen(p, s.desk.x + 15, s.desk.y - 4, screen, s.color, reduced ? 0 : t, s.index);
-        if (s.kind === "writer" && st.state === "working" && !reduced) p.rect(s.desk.x + 58, s.desk.y + 10, 14, 12, "#aaffee", 0.3 + 0.25 * Math.sin(t * 6));
+        if (s.kind === "writer" && st.state === "working" && !reduced) p.rect(s.desk.x + 58, s.desk.y + 10, 14, 12, "#cfe3df", 0.4);
         if (r && (st.state === "working" || st.state === "error")) bubble(p, r.x, r.y - 30, t, st.state === "error");
         if (st.note && st.state !== "idle") noteTag(p, centre(s.desk).x, s.desk.y + 63, st.note, st.state === "error");
       }
@@ -186,23 +186,23 @@ function envelope(p: Pen, a: { x: number; y: number }, b: { x: number; y: number
   const y = Math.round(a.y + (b.y - a.y) * e - Math.sin(e * Math.PI) * 22) - 3;
   p.rect(x, y, 9, 7, C.ink);
   p.rect(x + 1, y + 1, 7, 5, C.white);
-  p.rect(x + 2, y + 2, 1, 1, C.pink);
-  p.rect(x + 3, y + 3, 1, 1, C.pink);
-  p.rect(x + 5, y + 2, 1, 1, C.pink);
+  p.rect(x + 2, y + 2, 1, 1, "#8a8f96");
+  p.rect(x + 3, y + 3, 1, 1, "#8a8f96");
+  p.rect(x + 5, y + 2, 1, 1, "#8a8f96");
 }
 
 /** A speech bubble: three dots that light up in turn when busy, an exclamation mark on an error. */
 function bubble(p: Pen, cx: number, y: number, t: number, error: boolean) {
   const x = Math.round(cx) - 7;
   p.rect(x, y, 15, 9, C.ink);
-  p.rect(x + 1, y + 1, 13, 7, error ? C.red : C.white);
+  p.rect(x + 1, y + 1, 13, 7, error ? "#b3261e" : C.white);
   p.rect(Math.round(cx) - 1, y + 9, 3, 2, C.ink);
   if (error) {
     p.rect(x + 7, y + 2, 1, 3, C.white);
     p.rect(x + 7, y + 6, 1, 1, C.white);
     return;
   }
-  for (let i = 0; i < 3; i++) p.rect(x + 3 + i * 4, y + 4, 2, 2, Math.floor(t * 4) % 3 === i ? C.ink : C.lav);
+  for (let i = 0; i < 3; i++) p.rect(x + 3 + i * 4, y + 4, 2, 2, Math.floor(t * 2) % 3 === i ? C.ink : "#8a8f96");
 }
 
 /** What the worker is doing, in a small label above its bubble. */

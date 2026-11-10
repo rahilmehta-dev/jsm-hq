@@ -143,6 +143,11 @@ export function pavilionShell(p: Pen, x: number, y: number, w: number, h: number
   p.rect(x, y + 15, w, 1, C.sageL);
   labelReg.addStatic(label.toUpperCase(), x + w / 2, y + 10, 3);
   p.rect(x, y + 16, w, 32, C.glass, 0.9); // glass front
+  p.rect(x, y + 16, w, 2, C.shadow, 0.18); // eave shadow under the sign band
+  for (const cx of [x, x + w - 4]) {
+    p.rect(cx, y + 16, 4, 34, C.wallTop); // corner columns
+    p.rect(cx, y + 16, 1, 34, C.metalD);
+  }
   for (let gx = x; gx < x + w; gx += 24) p.rect(gx, y + 16, 2, 32, C.metalL);
   p.rect(x, y + 47, w, 2, C.metalD);
   const dx = x + Math.floor(w / 2) - 16;

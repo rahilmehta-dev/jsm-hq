@@ -328,7 +328,7 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
     for (const s of pv.stations) {
       const dx = s.desk.x - l.ox;
       const dy = s.desk.y - l.oy;
-      p.rect(s.rect.x - l.ox + 4, s.rect.y - l.oy + 22, s.rect.w - 8, 50, s.color, 0.2); // a rug in the worker's colour
+      p.rect(s.rect.x - l.ox + 4, s.rect.y - l.oy + 22, s.rect.w - 8, 50, soften(s.color, 0.6), 0.25); // a rug in a muted tint of the worker colour
       workDesk(p, dx, dy, s.index);
       plate(p, s.name.toUpperCase().slice(0, 10), dx + 24, dy + 52);
       if (s.kind === "fetcher") {
@@ -344,8 +344,8 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
       } else if (s.kind === "sender") {
         box(p, dx + 54, dy + 4, 22, 22, "#5f6b80");
         p.rect(dx + 57, dy + 10, 16, 5, "#1f1d26");
-        p.rect(dx + 70, dy - 2, 2, 8, C.red);
-        p.rect(dx + 70, dy - 2, 6, 3, C.red);
+        p.rect(dx + 70, dy - 2, 2, 8, "#a8645c");
+        p.rect(dx + 70, dy - 2, 6, 3, "#a8645c");
       } else {
         box(p, dx + 54, dy + 8, 20, 18, C.metal);
         disc(p, dx + 64, dy + 17, 5, C.metalD);
