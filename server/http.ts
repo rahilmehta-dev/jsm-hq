@@ -87,7 +87,7 @@ export function startHttp(o: Options) {
       if (req.method === "GET" || req.method === "DELETE") return send(res, 405, "stateless server");
       try {
         const raw = await readBody(req, 1024 * 1024);
-        return await handleMcp(o.hub, o.planner, agentId, req, res, raw ? JSON.parse(raw) : undefined);
+        return await handleMcp(o.hub, o.planner, agentId, req, res, raw ? JSON.parse(raw) : undefined, (id) => Promise.resolve(o.commands.syncAgentFiles?.(id)).then(() => {}));
       } catch {
         return res.headersSent ? void res.end() : send(res, 400, "bad request");
       }

@@ -42,6 +42,36 @@ function cleanStack(raw: unknown): StackConfig | null {
   return frameworks.length || Object.keys(tools).length ? { frameworks, tools } : null;
 }
 
+/** What an agent (or its lead) may change on a profile directly. Anything else needs the user. */
+export type ProfilePatch = Partial<Pick<AgentConfig, "role" | "roleMd" | "skills" | "color">>;
+
+/** Settings an agent can only ask for (a proposal): they change what it can reach or run. */
+export const PROFILE_PROPOSAL_FIELDS = ["workspacePath", "mode", "cli", "provider", "ollamaModel", "model", "sandbox", "mcp", "isLead"] as const;
+
+/**
+ * Applies role, roleMd, skills and color to an agent, clipped the same way for the user's Settings and for
+ * the Team MCP. `strict` (agents): a short role and a color from the palette only. Returns what changed.
+ */
+export function applyProfile(agent: AgentConfig, p: ProfilePatch, strict = false): (keyof ProfilePatch)[] {
+  const changed: (keyof ProfilePatch)[] = [];
+  const set = <K extends keyof ProfilePatch>(k: K, v: AgentConfig[K]) => {
+    if (JSON.stringify(agent[k]) !== JSON.stringify(v)) {
+      agent[k] = v;
+      changed.push(k);
+    }
+  };
+  // Checked first, so a bad color changes nothing.
+  if (strict && typeof p.color === "string" && !(agentPalette as readonly string[]).includes(p.color.toLowerCase())) throw new Error(`color must be one of: ${agentPalette.join(", ")}`);
+  if (typeof p.role === "string") {
+    const role = str(p.role, strict ? 40 : 8000);
+    if (!strict || role.trim()) set("role", strict ? role.trim() : role);
+  }
+  if (typeof p.roleMd === "string") set("roleMd", str(p.roleMd, 8000));
+  if (typeof p.color === "string") set("color", strict ? p.color.toLowerCase() : str(p.color, 8000));
+  if (Array.isArray(p.skills)) set("skills", p.skills.slice(0, strict ? 50 : p.skills.length).map((s) => str(s, 60)).filter(Boolean));
+  return changed;
+}
+
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "agent";
 const str = (v: unknown, max = 2000) => (typeof v === "string" ? v.slice(0, max) : "");
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
@@ -108,19 +138,23 @@ export function makeCommands(hub: Hub, sessions: Sessions, planner: Planner, inb
       if (!agent) return;
       const p = (patch ?? {}) as AgentPatch;
       const before = `${agent.cli}/${agent.mode}`;
-      for (const k of ["name", "role", "model", "color", "roleMd"] as const) if (typeof p[k] === "string") agent[k] = str(p[k], 8000);
+      if (typeof p.name === "string") agent.name = str(p.name, 8000);
+      if (typeof p.model === "string") agent.model = str(p.model, 8000);
+      applyProfile(agent, p);
       if (p.mode === "sandbox" || p.mode === "local") agent.mode = p.mode;
       if ((p.cli === "claude" || p.cli === "codex") && p.cli !== agent.cli) {
         agent.cli = p.cli;
         // Model names don't carry over between CLIs.
         if (typeof p.model !== "string") agent.model = "";
       }
-      if (Array.isArray(p.skills)) agent.skills = p.skills.map((s) => str(s, 60)).filter(Boolean);
       if (p.workspacePath !== undefined) agent.workspacePath = p.workspacePath ? str(p.workspacePath, 500).trim() || null : null;
       hub.configChanged();
       // Codex agents add their own setup checks.
       if (`${agent.cli}/${agent.mode}` !== before) void sessions.recheckSetup();
     },
+
+    /** Rewrites an agent's role files in its folder after its profile changed (Team MCP update_my_profile / update_agent). */
+    syncAgentFiles: (id) => sessions.rewriteRole(str(id, 80)),
 
     inspectWorkspace: async (id) => {
       const info = await sessions.inspectWorkspace(str(id, 80));

@@ -164,6 +164,20 @@ export class Sessions {
     hub.activity("session", id, `${agent.name} stopped`);
   }
 
+  /** Rewrites the HQ-written role files in the agent's folder from its current profile (a no-op until the folder exists). */
+  async rewriteRole(id: string): Promise<void> {
+    const agent = this.hub.cfg(id);
+    if (!agent) return;
+    const dir = workspaceFor(agent, this.hub.slug);
+    if (!existsSync(dir)) return;
+    try {
+      const hasEnvFile = !!this.envFileFor(id) && (agent.mode === "sandbox" || this.backend.persistent);
+      await adapters[agent.cli].writeFiles(dir, agent, this.hub.snap.config, this.agentToken, { hasEnvFile });
+    } catch (err) {
+      log.warn(`role files for ${agent.name}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
   /** What removing this agent would delete: folder state and whether a sandbox exists. */
   async inspectWorkspace(id: string): Promise<WorkspaceInfo | null> {
     const agent = this.hub.cfg(id);
