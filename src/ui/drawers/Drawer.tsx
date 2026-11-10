@@ -9,6 +9,20 @@ import { PrDrawer } from "./PrDrawer";
 import { ActionItemsDrawer } from "./ActionItemsDrawer";
 import { TerminalDrawer } from "./TerminalDrawer";
 
+/** The classic zoom-box rule: a 1px outline that grows from the top-right corner as the window opens. */
+function ZoomRule() {
+  return (
+    <motion.div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-20 border border-ink"
+      style={{ transformOrigin: "top right" }}
+      initial={{ scale: 0.3, opacity: 1 }}
+      animate={{ scale: 1, opacity: 0 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+    />
+  );
+}
+
 const DEFAULT_TITLE = { prs: "Pull requests", actions: "Action items", boards: "Boards", terminal: "Terminal", env: "Environment", agent: "Agent" } as const;
 
 /** Title bar (close box left, zoom box right) over an optional sub-header row for the drawer's own summary. */
@@ -107,14 +121,15 @@ export function DrawerHost() {
       {drawer && (
         <motion.aside
           key={key}
-          initial={reduce ? false : { x: "110%" }}
-          animate={{ x: 0 }}
-          exit={reduce ? { opacity: 0 } : { x: "110%" }}
-          transition={{ duration: reduce ? 0 : 0.28, ease: [0.3, 0, 0.2, 1] }}
+          initial={reduce ? false : { opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
+          transition={{ duration: reduce ? 0 : 0.18, ease: "easeOut" }}
           className={`panel fixed bottom-4 right-4 top-[44px] z-20 flex flex-col ${maximized ? "left-4" : ""}`}
-          style={maximized ? undefined : { width: `min(${width}px, calc(100vw - 32px))` }}
+          style={maximized ? { transformOrigin: "top right" } : { transformOrigin: "top right", width: `min(${width}px, calc(100vw - 32px))` }}
           aria-label="Details"
         >
+          {!reduce && <ZoomRule />}
           {!maximized && <ResizeHandle />}
           {drawer.kind === "agent" && <AgentDrawer id={drawer.id} initialTab={drawer.tab} />}
           {drawer.kind === "prs" && <PrDrawer />}

@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from "framer-motion";
+import { TitleBar } from "../kit";
 import { ui, useUi, type SettingsTab } from "../../store/ui";
 import { BoardsSettings } from "./BoardsSettings";
 import { ProjectSettings } from "./ProjectSettings";
@@ -25,7 +26,7 @@ export function SettingsModal() {
 
   return (
     <div
-      className="fixed inset-0 z-40 grid place-items-center bg-[rgba(36,26,46,0.55)] p-4"
+      className="fixed inset-0 z-40 grid place-items-center bg-black/30 p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Settings"
@@ -37,28 +38,23 @@ export function SettingsModal() {
         transition={{ duration: 0.2 }}
         className="panel flex h-[min(760px,calc(100dvh-2rem))] w-[min(1080px,100%)] flex-col"
       >
-        <div className="flex items-center gap-3 border-b-[3px] border-ink px-4 py-2">
-          <h2 className="m-0 flex-1 text-[22px] font-bold">Settings</h2>
-          <span className="text-[13px] text-muted">Changes apply right away.</span>
-          <button className="btn px-2.5" aria-label="Close settings" onClick={() => ui.closeSettings()}>
-            ✕
-          </button>
-        </div>
+        <TitleBar title="Settings" onClose={() => ui.closeSettings()} />
+        <p className="m-0 border-b border-ink bg-platinum px-4 py-1 text-[12px]">Changes apply right away.</p>
         <div className="flex min-h-0 flex-1">
-          <nav className="flex w-[200px] shrink-0 flex-col gap-2 border-r-[3px] border-ink bg-cream-2 p-3" aria-label="Settings sections">
+          <nav className="flex w-[200px] shrink-0 flex-col gap-2 border-r border-ink bg-cream-2 p-3" aria-label="Settings sections">
             {TABS.map((t) => (
               <button
                 key={t.id}
-                className="btn block px-2.5 py-1 text-left"
+                className="btn block px-3 py-1 text-left"
                 aria-pressed={settings.tab === t.id}
                 onClick={() => ui.openSettings(t.id, settings.agentId)}
               >
                 <div className="text-[16px]">{t.label}</div>
-                <div className="text-[11px] font-normal text-muted">{t.hint}</div>
+                <div className="text-[12px] font-normal opacity-80">{t.hint}</div>
               </button>
             ))}
           </nav>
-          <div className="scroll-thin min-w-0 flex-1 overflow-y-auto p-5">
+          <div className="scroll-thin min-w-0 flex-1 overflow-y-auto p-4">
             {settings.tab === "team" && <TeamSettings />}
             {settings.tab === "workflow" && <WorkflowSettings />}
             {settings.tab === "stack" && <StackSettings />}

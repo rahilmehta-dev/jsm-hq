@@ -28,16 +28,16 @@ export function RemoveAgentDialog({ agent, onClose }: { agent: AgentConfig; onCl
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[rgba(36,26,46,0.55)] p-4" role="dialog" aria-modal="true" aria-label={`Remove ${agent.name}`}>
-      <div className="panel w-[min(560px,100%)] p-4">
-        <h3 className="mb-1 text-[20px] font-bold">Remove {agent.name} from the team?</h3>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4" role="dialog" aria-modal="true" aria-label={`Remove ${agent.name}`}>
+      <div className="alert w-[min(560px,100%)] bg-paper p-4">
+        <h3 className="mb-1 text-[17px] font-bold">Remove {agent.name} from the team?</h3>
         <p className="mb-3 text-[13px] text-muted">Their session stops, and their unfinished tasks go back to the board.</p>
 
         {loading && <p className="blink mb-3 font-term text-[18px]">Checking {agent.name}'s folder…</p>}
 
         {info && (
-          <div className="mb-3 flex flex-col gap-2.5">
-            <label className={`flex items-start gap-2 border-2 border-ink bg-white p-2 ${info.sandboxExists ? "" : "opacity-60"}`}>
+          <div className="mb-3 flex flex-col gap-3">
+            <label className={`flex items-start gap-2 border border-ink bg-white p-2 ${info.sandboxExists ? "" : "opacity-60"}`}>
               <input type="checkbox" className="mt-1" checked={deleteSandbox && info.sandboxExists} disabled={!info.sandboxExists} onChange={(e) => setDeleteSandbox(e.target.checked)} />
               <span className="min-w-0">
                 <b className="text-[15px]">Delete {agent.name}'s sandbox (the VM)</b>
@@ -46,7 +46,7 @@ export function RemoveAgentDialog({ agent, onClose }: { agent: AgentConfig; onCl
               </span>
             </label>
 
-            <label className={`flex items-start gap-2 border-2 p-2 ${atRisk && deleteFolder ? "border-red bg-[#ffe1ea]" : "border-ink bg-white"} ${info.managed && info.exists ? "" : "opacity-60"}`}>
+            <label className={`flex items-start gap-2 border-2 p-2 ${atRisk && deleteFolder ? "border-ink bg-bad-fill" : "border-ink bg-white"} ${info.managed && info.exists ? "" : "opacity-60"}`}>
               <input type="checkbox" className="mt-1" checked={deleteFolder} disabled={!info.managed || !info.exists} onChange={(e) => setDeleteFolder(e.target.checked)} />
               <span className="min-w-0">
                 <b className="text-[15px]">Delete {agent.name}'s folder</b>
@@ -66,10 +66,10 @@ export function RemoveAgentDialog({ agent, onClose }: { agent: AgentConfig; onCl
         )}
 
         <div className="flex justify-end gap-2">
-          <button className="btn" onClick={onClose}>
+          <button className="btn btn-default" autoFocus onClick={onClose}>
             Cancel
           </button>
-          <button className="btn text-red" disabled={loading} onClick={remove}>
+          <button className="btn" disabled={loading} onClick={remove}>
             Remove {agent.name}
           </button>
         </div>

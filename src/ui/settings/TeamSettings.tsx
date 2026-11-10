@@ -53,7 +53,7 @@ function AgentRow({ agent, expanded, onToggle, onRemove }: { agent: AgentConfig;
   const localUrl = useOffice((s) => s.snap?.config.project.localServerUrl);
   return (
     <div className="rounded-xl border border-line bg-white">
-      <div className="grid grid-cols-[40px_1fr_1fr_150px_130px_auto] items-end gap-2.5 p-2.5">
+      <div className="grid grid-cols-[40px_1fr_1fr_150px_130px_auto] items-end gap-3 p-3">
         <Portrait color={agent.color} lead={agent.isLead} />
         <Field label="Name">
           <CommitInput className="field" value={agent.name} onCommit={(v) => v.trim() && set({ name: v.trim() })} />
@@ -209,7 +209,7 @@ function ProjectRoomSettings() {
       </div>
       {rooms.length < 12 && (
         <form
-          className="mt-3 grid max-w-[460px] grid-cols-[1fr_auto] items-end gap-2.5"
+          className="mt-3 grid max-w-[460px] grid-cols-[1fr_auto] items-end gap-3"
           onSubmit={(e) => {
             e.preventDefault();
             officeActions.addProjectRoom({ name: name.trim() || "Project room", workers: [] });
@@ -255,7 +255,7 @@ function RoomCard({ room, scoped, statuses }: { room: RoomView; scoped: boolean;
             <CommitInput className="field" value={room.name} placeholder="Job referrals" onCommit={(v) => save({ name: v.trim() || "Project room" })} />
           </Field>
         </div>
-        <span className="chip" style={{ ["--c" as string]: reporting ? "#d9eedf" : "#f6e9b8" }}>
+        <span className="chip" style={{ ["--c" as string]: reporting ? "#d9eedf" : "#f5e2b8" }}>
           {reporting ? "Project connected" : room.demo === false ? "Waiting for a project" : "Demo animation"}
         </span>
         <button
@@ -273,7 +273,7 @@ function RoomCard({ room, scoped, statuses }: { room: RoomView; scoped: boolean;
           {workers.map((w, i) => {
             const st = liveStatus(statuses?.[roomWorkerKey(room.id, w.id, scoped)]);
             return (
-              <div key={`${w.id}-${i}`} className="grid grid-cols-[28px_1fr_200px_minmax(0,1.1fr)_auto] items-center gap-2.5 rounded-lg border border-line bg-cream p-2">
+              <div key={`${w.id}-${i}`} className="grid grid-cols-[28px_1fr_200px_minmax(0,1.1fr)_auto] items-center gap-3 rounded-[4px] border border-line bg-cream p-2">
                 <span className="h-5 w-5 rounded-full border border-line" style={{ background: w.color }} aria-hidden />
                 <CommitInput className="field" value={w.name} aria-label="Worker name" onCommit={(v) => v.trim() && change(i, { name: v.trim() })} />
                 <select className="field" value={w.kind} aria-label="What it does" onChange={(e) => change(i, { kind: e.target.value as ProjectWorkerKind })}>
@@ -296,7 +296,7 @@ function RoomCard({ room, scoped, statuses }: { room: RoomView; scoped: boolean;
         </div>
       )}
       <form
-        className="grid grid-cols-[1fr_220px_auto] items-end gap-2.5"
+        className="grid grid-cols-[1fr_220px_auto] items-end gap-3"
         onSubmit={(e) => {
           e.preventDefault();
           add();
@@ -355,7 +355,7 @@ function Connect({ api, rooms, scoped }: { api: { url: string; token: string } |
               </Field>
             </div>
           )}
-          <pre className="mb-2 overflow-x-auto whitespace-pre-wrap break-all rounded-lg border border-line bg-white p-2 font-term text-[13px]">{vars(shown ? api.token : "•".repeat(16))}</pre>
+          <pre className="mb-2 overflow-x-auto whitespace-pre-wrap break-all rounded-[4px] border border-line bg-white p-2 font-term text-[13px]">{vars(shown ? api.token : "•".repeat(16))}</pre>
           <div className="flex gap-2">
             <button className="btn px-2 text-[13px]" onClick={() => setShown(!shown)}>
               {shown ? "Hide token" : "Show token"}
@@ -388,7 +388,7 @@ function AddAgent() {
     <section className="rounded-xl border border-dashed border-line p-3">
       <SectionTitle>Add an agent</SectionTitle>
       <form
-        className="grid grid-cols-[1fr_1fr_150px_130px_auto] items-end gap-2.5"
+        className="grid grid-cols-[1fr_1fr_150px_130px_auto] items-end gap-3"
         onSubmit={(e) => {
           e.preventDefault();
           add();
