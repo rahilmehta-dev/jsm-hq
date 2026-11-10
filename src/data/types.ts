@@ -91,6 +91,7 @@ export interface ProjectConfig {
   hqPort: number; // port sandboxes use to reach HQ via host.docker.internal
   exportPlan?: boolean; // also write the plan to docs/plan.md
   officeName?: string; // the sign on the office wall; empty = "JSM HQ"
+  ponytail?: boolean; // install the ponytail skills (DietrichGebert/ponytail) for every agent; default off
 }
 
 export interface HqConfig {
