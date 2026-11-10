@@ -17,6 +17,7 @@ import { parseOllamaUrl } from "./ollama";
 import { cleanProjectRoom, setRoom } from "./room";
 import { newAgent } from "./store";
 import { mergeByNotice } from "./githubSync";
+import { prRef } from "./github";
 
 /** A stack from the browser, checked against the catalog. Null when nothing is chosen. */
 function cleanStack(raw: unknown): StackConfig | null {
@@ -41,6 +42,36 @@ function cleanStack(raw: unknown): StackConfig | null {
     if (picked) tools[c.id] = picked;
   }
   return frameworks.length || Object.keys(tools).length ? { frameworks, tools } : null;
+}
+
+/** What an agent (or its lead) may change on a profile directly. Anything else needs the user. */
+export type ProfilePatch = Partial<Pick<AgentConfig, "role" | "roleMd" | "skills" | "color">>;
+
+/** Settings an agent can only ask for (a proposal): they change what it can reach or run. */
+export const PROFILE_PROPOSAL_FIELDS = ["workspacePath", "mode", "cli", "provider", "ollamaModel", "model", "sandbox", "mcp", "isLead"] as const;
+
+/**
+ * Applies role, roleMd, skills and color to an agent, clipped the same way for the user's Settings and for
+ * the Team MCP. `strict` (agents): a short role and a color from the palette only. Returns what changed.
+ */
+export function applyProfile(agent: AgentConfig, p: ProfilePatch, strict = false): (keyof ProfilePatch)[] {
+  const changed: (keyof ProfilePatch)[] = [];
+  const set = <K extends keyof ProfilePatch>(k: K, v: AgentConfig[K]) => {
+    if (JSON.stringify(agent[k]) !== JSON.stringify(v)) {
+      agent[k] = v;
+      changed.push(k);
+    }
+  };
+  // Checked first, so a bad color changes nothing.
+  if (strict && typeof p.color === "string" && !(agentPalette as readonly string[]).includes(p.color.toLowerCase())) throw new Error(`color must be one of: ${agentPalette.join(", ")}`);
+  if (typeof p.role === "string") {
+    const role = str(p.role, strict ? 40 : 8000);
+    if (!strict || role.trim()) set("role", strict ? role.trim() : role);
+  }
+  if (typeof p.roleMd === "string") set("roleMd", str(p.roleMd, 8000));
+  if (typeof p.color === "string") set("color", strict ? p.color.toLowerCase() : str(p.color, 8000));
+  if (Array.isArray(p.skills)) set("skills", p.skills.slice(0, strict ? 50 : p.skills.length).map((s) => str(s, 60)).filter(Boolean));
+  return changed;
 }
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "agent";
@@ -113,7 +144,9 @@ export function makeCommands(hub: Hub, sessions: Sessions, planner: Planner, inb
       if (!agent) return;
       const p = (patch ?? {}) as AgentPatch;
       const before = `${agent.cli}/${agent.mode}/${agent.provider}/${agent.ollamaModel}`;
-      for (const k of ["name", "role", "model", "color", "roleMd"] as const) if (typeof p[k] === "string") agent[k] = str(p[k], 8000);
+      if (typeof p.name === "string") agent.name = str(p.name, 8000);
+      if (typeof p.model === "string") agent.model = str(p.model, 8000);
+      applyProfile(agent, p);
       if (p.mode === "sandbox" || p.mode === "local") agent.mode = p.mode;
       if (isAgentCli(p.cli) && p.cli !== agent.cli) {
         agent.cli = p.cli;
@@ -127,12 +160,14 @@ export function makeCommands(hub: Hub, sessions: Sessions, planner: Planner, inb
       }
       if (typeof p.ollamaModel === "string") agent.ollamaModel = str(p.ollamaModel, 100).trim();
       if (!supportsOllama(agent.cli)) delete agent.provider;
-      if (Array.isArray(p.skills)) agent.skills = p.skills.map((s) => str(s, 60)).filter(Boolean);
       if (p.workspacePath !== undefined) agent.workspacePath = p.workspacePath ? str(p.workspacePath, 500).trim() || null : null;
       hub.configChanged();
       // Codex and Gemini agents add their own setup checks.
       if (`${agent.cli}/${agent.mode}/${agent.provider}/${agent.ollamaModel}` !== before) void sessions.recheckSetup();
     },
+
+    /** Rewrites an agent's role files in its folder after its profile changed (Team MCP update_my_profile / update_agent). */
+    syncAgentFiles: (id) => sessions.rewriteRole(str(id, 80)),
 
     inspectWorkspace: async (id) => {
       const info = await sessions.inspectWorkspace(str(id, 80));
@@ -245,7 +280,7 @@ export function makeCommands(hub: Hub, sessions: Sessions, planner: Planner, inb
       cfg.stack = stack;
       hub.configChanged();
       // Fetch the skills now so the next Start doesn't wait for them.
-      const specs = stackSkills(cfg.stack);
+      const specs = stackSkills(cfg.stack, !!cfg.project.ponytail);
       if (specs.length) void ensureSkillCache(hub.slug, specs).catch((e) => hub.activity("config", null, `Couldn't fetch agent skills: ${String(e instanceof Error ? e.message : e).slice(0, 160)}`));
     },
 
@@ -280,7 +315,7 @@ export function makeCommands(hub: Hub, sessions: Sessions, planner: Planner, inb
       const stack = cleanStack(input.stack);
       if (stack) {
         cfg.stack = stack;
-        const specs = stackSkills(stack);
+        const specs = stackSkills(stack, !!cfg.project.ponytail);
         if (specs.length) void ensureSkillCache(hub.slug, specs).catch(() => {}); // retried on Start
       }
       hub.snap.agents = cfg.team.map((a) => Hub.freshStatus(a.id));
@@ -304,7 +339,7 @@ export function makeCommands(hub: Hub, sessions: Sessions, planner: Planner, inb
       // The lead was told the old rule; tell it the new one now, so no restart is needed.
       const lead = hub.snap.config.team.find((a) => a.isLead);
       if (lead && wf.merge.by !== mergeBy) {
-        const waiting = hub.snap.pullRequests.filter((pr) => pr.review === "passed" && !pr.merged && !pr.closed).map((pr) => pr.number);
+        const waiting = hub.snap.pullRequests.filter((pr) => pr.review === "passed" && !pr.merged && !pr.closed).map((pr) => prRef(pr, hub.repo.github));
         planner.notify(lead.id, mergeByNotice(wf.merge.by, waiting));
       }
     },
@@ -326,9 +361,21 @@ export function makeCommands(hub: Hub, sessions: Sessions, planner: Planner, inb
         else delete project.ollamaUrl;
         void sessions.recheckSetup();
       }
+      const ponytailChanged = typeof p.ponytail === "boolean" && p.ponytail !== !!project.ponytail;
+      if (typeof p.ponytail === "boolean") {
+        if (p.ponytail) project.ponytail = true;
+        else delete project.ponytail;
+      }
       const exportOn = typeof p.exportPlan === "boolean" && p.exportPlan && !project.exportPlan;
       if (typeof p.exportPlan === "boolean") project.exportPlan = p.exportPlan;
       hub.configChanged();
+      if (ponytailChanged) {
+        // Refresh the cache now (off drops the ponytail skills from it). Agents get the change, and lose the skills when it's off, on their next start.
+        const on = !!project.ponytail;
+        void ensureSkillCache(hub.slug, stackSkills(hub.snap.config.stack, on))
+          .then(() => hub.activity("config", null, `Ponytail is ${on ? "on" : "off"}. Agents ${on ? "get its skills" : "drop its skills"} the next time they start.`))
+          .catch((e) => hub.activity("config", null, `Couldn't fetch agent skills: ${String(e instanceof Error ? e.message : e).slice(0, 160)}`));
+      }
       if (exportOn) {
         hub.planChanged();
         hub.activity("config", null, "Plan export on: HQ writes docs/plan.md whenever the plan changes.");

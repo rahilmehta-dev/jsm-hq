@@ -108,6 +108,7 @@ export interface ProjectConfig {
   exportPlan?: boolean; // also write the plan to docs/plan.md
   officeName?: string; // the sign on the office wall; empty = "My HQ"
   ollamaUrl?: string; // where Ollama runs for agents on the "ollama" provider; absent = DEFAULT_OLLAMA_URL
+  ponytail?: boolean; // install the ponytail skills (DietrichGebert/ponytail) for every agent; default off
 }
 
 /** What a project-room worker does. It's a character in the office, not a coding agent. */
@@ -212,6 +213,7 @@ export interface Task {
   status: TaskStatus;
   needs: string[]; // task IDs
   prNumber: number | null;
+  prRepo?: string; // "owner/name" of the PR's repo, when it isn't the main repo's number alone
   description?: string; // what to build
   files?: string[]; // the only files this task may edit
   doneWhen?: string; // acceptance criteria
@@ -221,6 +223,7 @@ export interface Task {
 export type ReviewState = "pending" | "reviewing" | "changes-requested" | "passed";
 
 export interface PullRequest {
+  repo?: string; // "owner/name"; unset for PRs without a known repo
   number: number;
   title: string; // "[P3-T02] Chat route"
   taskId: string;
@@ -235,6 +238,11 @@ export interface PullRequest {
   closed?: boolean; // closed without merging — hidden from the board
   conflict?: boolean; // has merge conflicts with the base branch
   reviewNote?: string | null; // e.g. "CodeRabbit: review rate limited"
+}
+
+/** A PR's identity across repos: "owner/name#N", or just "N" when the repo is unknown. */
+export function prKey(pr: { repo?: string; number: number }): string {
+  return pr.repo ? `${pr.repo}#${pr.number}` : String(pr.number);
 }
 
 export type EnvironmentStatus = "live" | "deploying" | "sleeping";

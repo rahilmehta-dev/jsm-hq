@@ -2,6 +2,7 @@
 // (agents) and the browser commands (you), so both follow the same rules.
 
 import type { Board, Task, TaskStatus } from "../src/data/types";
+import { prRef } from "./github";
 import type { Hub } from "./hub";
 import type { ActionItems } from "./actionItems";
 import type { Inbox } from "./inbox";
@@ -15,7 +16,7 @@ export interface NewTask {
   needs?: string[];
 }
 
-export type TaskPatch = Partial<Pick<Task, "title" | "description" | "files" | "doneWhen" | "needs" | "status" | "boardId" | "note" | "prNumber">>;
+export type TaskPatch = Partial<Pick<Task, "title" | "description" | "files" | "doneWhen" | "needs" | "status" | "boardId" | "note" | "prNumber" | "prRepo">>;
 
 const now = () => new Date().toISOString();
 
@@ -123,12 +124,17 @@ export class Planner {
     return task;
   }
 
-  setStatus(agentId: string, status: Extract<TaskStatus, "in-progress" | "blocked" | "in-review" | "done">, note?: string, prNumber?: number): Task {
+  setStatus(agentId: string, status: Extract<TaskStatus, "in-progress" | "blocked" | "in-review" | "done">, note?: string, prNumber?: number, prRepo?: string): Task {
     const task = this.currentTask(agentId);
     if (!task) throw new Error("You have no task. Ask the lead for one.");
     task.status = status;
     task.note = note?.slice(0, 300) || null;
-    if (prNumber) task.prNumber = prNumber;
+    if (prNumber) {
+      task.prNumber = prNumber;
+      // A PR in the main repo needs no repo; one elsewhere is told apart by it.
+      if (prRepo && prRepo !== this.hub.repo.github) task.prRepo = prRepo;
+      else delete task.prRepo;
+    }
     if (status === "done") this.hub.setStatus(agentId, { currentTaskId: null });
     else this.hub.setStatus(agentId, { currentTaskId: task.id });
     this.hub.emit({ type: "task.updated", task: { ...task } });
@@ -139,7 +145,7 @@ export class Planner {
     // Let the lead know when work is blocked or ready for review.
     const lead = this.snap.config.team.find((a) => a.isLead);
     if (lead && lead.id !== agentId && (status === "blocked" || status === "in-review" || status === "done"))
-      this.message(agentId, lead.id, `${task.id} ${words}${note ? `: ${note}` : ""}${prNumber ? ` (PR #${prNumber})` : ""}`);
+      this.message(agentId, lead.id, `${task.id} ${words}${note ? `: ${note}` : ""}${prNumber ? ` (PR ${prRef({ repo: task.prRepo, number: prNumber }, this.hub.repo.github)})` : ""}`);
     return task;
   }
 

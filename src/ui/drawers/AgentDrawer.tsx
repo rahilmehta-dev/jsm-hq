@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { CLI_LABEL, HUMAN_ID, type AccessRequest, type AgentConfig, type AgentStatus, type OfficeSnapshot } from "../../data/types";
-import { officeActions, useOffice } from "../../store/office";
+import { officeActions, prLabel, prOfTask, useOffice } from "../../store/office";
 import { ui, type AgentTab } from "../../store/ui";
 import { ago, Dot, Portrait, ReviewChip, SectionTitle, StateChip, Tabs, useNow } from "../kit";
 import { DrawerHeader } from "./Drawer";
@@ -287,7 +287,7 @@ function NotRunning({ agent, status }: { agent: AgentConfig; status: AgentStatus
 
 function TaskTab({ snap, agent, taskId }: { snap: OfficeSnapshot; agent: AgentConfig; taskId: string | null }) {
   const task = taskId ? snap.tasks.find((t) => t.id === taskId) : null;
-  const pr = task?.prNumber ? snap.pullRequests.find((p) => p.number === task.prNumber) : null;
+  const pr = task ? prOfTask(snap, task) : null;
   const active = snap.boards.filter((b) => b.status === "active");
   const free = snap.tasks.filter((t) => t.status === "todo" && active.some((b) => b.id === t.boardId));
   const [pick, setPick] = useState("");
@@ -336,7 +336,7 @@ function TaskTab({ snap, agent, taskId }: { snap: OfficeSnapshot; agent: AgentCo
           {pr && (
             <div className="mt-2 flex items-center gap-2 text-[14px]">
               <button className="font-semibold underline" onClick={() => ui.openPrs()}>
-                PR #{pr.number}
+                PR {prLabel(pr, snap)}
               </button>
               <ReviewChip review={pr.review} merged={pr.merged} />
               {pr.openComments > 0 && <span>{pr.openComments} comments</span>}

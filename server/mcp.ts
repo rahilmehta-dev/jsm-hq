@@ -9,6 +9,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { z } from "zod";
 import type { Hub } from "./hub";
 import { requestAccess } from "./access";
+import { applyProfile, PROFILE_PROPOSAL_FIELDS } from "./commands";
 import type { Planner } from "./planner";
 import { cleanProjectRoom, setRoom } from "./room";
 
@@ -18,17 +19,17 @@ const ok = (value: unknown): Result => ({ content: [{ type: "text", text: typeof
 const fail = (msg: string): Result => ({ content: [{ type: "text", text: msg }], isError: true });
 
 /** Wraps a tool body: thrown errors become tool errors the agent can read. */
-function guard<A>(fn: (args: A) => Result) {
+function guard<A>(fn: (args: A) => Result | Promise<Result>) {
   return async (args: A): Promise<Result> => {
     try {
-      return fn(args);
+      return await fn(args);
     } catch (err) {
       return fail(err instanceof Error ? err.message : String(err));
     }
   };
 }
 
-function buildServer(hub: Hub, planner: Planner, me: string): McpServer {
+function buildServer(hub: Hub, planner: Planner, me: string, syncFiles: (agentId: string) => Promise<void>): McpServer {
   const server = new McpServer({ name: "hq", version: "0.1.0" });
   const isLead = !!hub.cfg(me)?.isLead;
   const leadOnly = () => {
@@ -157,7 +158,7 @@ function buildServer(hub: Hub, planner: Planner, me: string): McpServer {
       if (!t) return ok("You have no task right now. Wait for the lead, or ask with send_message.");
       if (t.status === "todo") planner.setStatus(me, "in-progress");
       const blockedBy = t.needs.filter((n) => planner.task(n)?.status !== "done");
-      return ok({ ...taskView(t.id), waitingOn: blockedBy, rules: "Work only on this task, on its own branch. Edit only the listed files. Title the PR `[" + t.id + "] " + t.title + "`. When the PR is open, call set_my_status with in-review and the PR number." });
+      return ok({ ...taskView(t.id), waitingOn: blockedBy, rules: "Work only on this task, on its own branch. Edit only the listed files. Title the PR `[" + t.id + "] " + t.title + "`. When the PR is open, call set_my_status with in-review and the PR number (plus prRepo, as owner/name, if the PR is in a different repo than the project's main one)." });
     }),
   );
 
@@ -169,10 +170,15 @@ function buildServer(hub: Hub, planner: Planner, me: string): McpServer {
         status: z.enum(["in-progress", "blocked", "in-review", "done"]),
         note: z.string().optional().describe("Why you are blocked, or a short summary"),
         prNumber: z.number().int().optional(),
+        prRepo: z
+          .string()
+          .regex(/^[\w.-]+\/[\w.-]+$/)
+          .optional()
+          .describe("owner/name of the PR's repo, if it isn't this project's main repo"),
       },
     },
-    guard(({ status, note, prNumber }: { status: "in-progress" | "blocked" | "in-review" | "done"; note?: string; prNumber?: number }) => {
-      const t = planner.setStatus(me, status, note, prNumber);
+    guard(({ status, note, prNumber, prRepo }: { status: "in-progress" | "blocked" | "in-review" | "done"; note?: string; prNumber?: number; prRepo?: string }) => {
+      const t = planner.setStatus(me, status, note, prNumber, prRepo);
       return ok(`${t.id} is now ${t.status}.`);
     }),
   );
@@ -193,6 +199,70 @@ function buildServer(hub: Hub, planner: Planner, me: string): McpServer {
       if (!details.trim()) throw new Error("Add the steps in details, so the user knows exactly what to do.");
       const item = planner.actions.add(me, title, details, !!waiting);
       return ok(`Added to the user's Action items (${item.id}). ${waiting ? "Wait for HQ's message, or work on something else meanwhile." : "Keep working; HQ will message you when it's done."}`);
+    }),
+  );
+
+  // Profile changes. Safe fields apply right away; the rest can only be proposed to the user.
+  const proposalSchema = z
+    .object({ field: z.enum(PROFILE_PROPOSAL_FIELDS), value: z.string(), reason: z.string() })
+    .optional()
+    .describe("Ask the user for a change you can't make yourself (workspacePath, mode, cli, provider, ollamaModel, model, sandbox, mcp, isLead). They get an action item and apply it in Settings → Team.");
+  const profileShape = {
+    role: z.string().optional().describe("Short role title, e.g. QA"),
+    roleMd: z.string().optional().describe("Your instructions (the ROLE text)"),
+    skills: z.array(z.string()).optional(),
+    color: z.string().optional().describe("One of HQ's palette colors, as hex"),
+    proposal: proposalSchema,
+  };
+  // Named so a call that tries them directly gets a clear answer instead of having them silently dropped.
+  const blockedShape = Object.fromEntries(PROFILE_PROPOSAL_FIELDS.map((f) => [f, z.unknown().optional()]));
+  type ProfileArgs = { role?: string; roleMd?: string; skills?: string[]; color?: string; proposal?: { field: string; value: string; reason: string } } & Record<string, unknown>;
+
+  const changeProfile = async (targetId: string, args: ProfileArgs) => {
+    const agent = hub.cfg(targetId);
+    if (!agent) throw new Error("No such agent.");
+    const blocked = PROFILE_PROPOSAL_FIELDS.filter((f) => args[f] !== undefined);
+    const changed = applyProfile(agent, { role: args.role, roleMd: args.roleMd, skills: args.skills, color: args.color }, true);
+    if (changed.length) {
+      hub.configChanged();
+      const status = hub.status(targetId);
+      if (status) hub.emit({ type: "agent.updated", agent: structuredClone(status) });
+      hub.activity("config", me, `${hub.name(me)} updated ${targetId === me ? "their" : `${agent.name}'s`} profile (${changed.join(", ")})`);
+      await syncFiles(targetId);
+      if (targetId !== me) planner.notify(targetId, `${hub.name(me)} updated your profile (${changed.join(", ")}). HQ rewrote your role file; re-read it.`);
+    }
+    const parts: string[] = [changed.length ? `Updated ${changed.join(", ")}. HQ rewrote the role file in ${targetId === me ? "your" : `${agent.name}'s`} folder${changed.includes("roleMd") || changed.includes("role") ? "; the new instructions are read when the session next starts" : ""}.` : "Nothing changed."];
+    if (blocked.length) parts.push(`${blocked.join(", ")} can't be changed directly: they need the user's approval. Use the proposal parameter ({ field, value, reason }).`);
+    if (args.proposal) {
+      if (!planner.actions) throw new Error("Action items aren't available.");
+      planner.actions.propose(me, targetId, args.proposal.field, args.proposal.value, args.proposal.reason);
+      parts.push(`Asked the user to change ${args.proposal.field}; it's in their Action items. Dangerous fields are never applied without them.`);
+    }
+    return ok(parts.join(" "));
+  };
+
+  server.registerTool(
+    "update_my_profile",
+    {
+      description:
+        "Change your own role, roleMd (instructions), skills or color. Applied right away and your role file is rewritten. Settings that change what you can reach or run (workspacePath, mode, cli, provider, ollamaModel, model, sandbox, mcp, isLead) need the user: pass proposal { field, value, reason }.",
+      inputSchema: { ...profileShape, ...blockedShape },
+    },
+    guard((args: ProfileArgs) => changeProfile(me, args)),
+  );
+
+  server.registerTool(
+    "update_agent",
+    {
+      description:
+        "Lead only. Re-scope a teammate: change their role, roleMd, skills or color. Same rules as update_my_profile: dangerous settings can only be proposed to the user (proposal), never applied.",
+      inputSchema: { agent: z.string().describe("Their id or name"), ...profileShape, ...blockedShape },
+    },
+    guard((args: ProfileArgs & { agent: string }) => {
+      leadOnly();
+      const id = planner.agentId(args.agent);
+      if (!id) throw new Error(`No agent "${args.agent}". Team: ${hub.snap.config.team.map((a) => a.id).join(", ")}`);
+      return changeProfile(id, args);
     }),
   );
 
@@ -273,8 +343,8 @@ function buildServer(hub: Hub, planner: Planner, me: string): McpServer {
 }
 
 /** Handles one MCP HTTP request for an already-authenticated agent. */
-export async function handleMcp(hub: Hub, planner: Planner, agentId: string, req: IncomingMessage, res: ServerResponse, body: unknown) {
-  const server = buildServer(hub, planner, agentId);
+export async function handleMcp(hub: Hub, planner: Planner, agentId: string, req: IncomingMessage, res: ServerResponse, body: unknown, syncFiles: (agentId: string) => Promise<void> = async () => {}) {
+  const server = buildServer(hub, planner, agentId, syncFiles);
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   res.on("close", () => {
     void transport.close();

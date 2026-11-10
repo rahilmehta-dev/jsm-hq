@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { BoardStatus, Task, TaskStatus } from "../../data/types";
-import { officeActions, useOffice } from "../../store/office";
+import { officeActions, prLabel, useOffice } from "../../store/office";
 import { ui, useUi } from "../../store/ui";
 import { Dot } from "../kit";
 import { DrawerHeader } from "./Drawer";
@@ -92,7 +92,7 @@ function TaskCard({ task }: { task: Task }) {
     <div className={`border-2 border-ink px-2 py-1.5 shadow-[0_3px_0_rgba(36,26,46,0.35)] ${task.status === "done" ? "bg-[#e8e1d2] text-muted" : "bg-white"}`}>
       <div className="font-term text-[16px] leading-none text-muted">
         {task.id}
-        {task.prNumber && <span className="ml-1.5">#{task.prNumber}</span>}
+        {task.prNumber && <span className="ml-1.5">{snap ? prLabel({ repo: task.prRepo, number: task.prNumber }, snap) : `#${task.prNumber}`}</span>}
       </div>
       <div
         className={`text-[14px] font-semibold leading-tight ${task.status === "done" ? "line-through" : ""}`}

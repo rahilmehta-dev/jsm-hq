@@ -236,9 +236,17 @@ export function stackRoleMd(stack: StackConfig | undefined): string {
   return lines.join("\n");
 }
 
-/** Every skill the chosen stack installs, merged per source. */
-export function stackSkills(stack: StackConfig | undefined): SkillSpec[] {
+/** The "ponytail" ruleset: its own project setting, not a stack tool. */
+export const PONYTAIL_URL = "https://github.com/DietrichGebert/ponytail";
+export const PONYTAIL_SKILLS: SkillSpec = {
+  source: "DietrichGebert/ponytail",
+  skills: ["ponytail", "ponytail-review", "ponytail-audit", "ponytail-debt", "ponytail-gain", "ponytail-help"],
+};
+
+/** Every skill the chosen stack installs (plus ponytail's when it's on), merged per source. */
+export function stackSkills(stack: StackConfig | undefined, ponytail = false): SkillSpec[] {
   const bySource = new Map<string, Set<string>>();
+  if (ponytail) for (const name of PONYTAIL_SKILLS.skills) bySource.set(PONYTAIL_SKILLS.source, (bySource.get(PONYTAIL_SKILLS.source) ?? new Set()).add(name));
   for (const t of chosenTools(stack)) for (const spec of t.skills) for (const name of spec.skills) bySource.set(spec.source, (bySource.get(spec.source) ?? new Set()).add(name));
   return [...bySource].map(([source, names]) => ({ source, skills: [...names].sort() })).sort((a, b) => a.source.localeCompare(b.source));
 }

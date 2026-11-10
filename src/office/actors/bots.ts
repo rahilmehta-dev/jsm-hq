@@ -26,7 +26,7 @@ export class Bot {
   errand: Errand | null = null;
   pause = 0; // seconds to linger before the next idle errand
   emote: { type: EmoteType; until: number } | null = null;
-  carry: number | null = null; // PR number being carried
+  carry: string | null = null; // prKey of the PR being carried
   headY = 0;
   color: string;
   isLead: boolean;

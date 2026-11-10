@@ -121,7 +121,7 @@ export class Sessions {
       // App variables reach the agent in sandbox mode and in Local mode with tmux (not Local on Windows).
       const hasEnvFile = !!this.envFileFor(id) && (agent.mode === "sandbox" || this.backend.persistent);
       await adapter.writeFiles(dir, agent, hub.snap.config, this.agentToken, { hasEnvFile });
-      const specs = stackSkills(hub.snap.config.stack);
+      const specs = stackSkills(hub.snap.config.stack, !!hub.snap.config.project.ponytail);
       if (specs.length || hasHqSkills(hub.slug, dir)) {
         hub.setSession(id, { detail: "Installing agent skills…" });
         const skills = await prepareSkills(hub.slug, dir, specs);
@@ -177,6 +177,20 @@ export class Sessions {
     hub.setSession(id, { state: "stopped", detail: null });
     hub.setStatus(id, { state: "idle", currentTaskId: null, note: "Stopped" });
     hub.activity("session", id, `${agent.name} stopped`);
+  }
+
+  /** Rewrites the HQ-written role files in the agent's folder from its current profile (a no-op until the folder exists). */
+  async rewriteRole(id: string): Promise<void> {
+    const agent = this.hub.cfg(id);
+    if (!agent) return;
+    const dir = workspaceFor(agent, this.hub.slug);
+    if (!existsSync(dir)) return;
+    try {
+      const hasEnvFile = !!this.envFileFor(id) && (agent.mode === "sandbox" || this.backend.persistent);
+      await adapters[agent.cli].writeFiles(dir, agent, this.hub.snap.config, this.agentToken, { hasEnvFile });
+    } catch (err) {
+      log.warn(`role files for ${agent.name}: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   /** What removing this agent would delete: folder state and whether a sandbox exists. */
