@@ -86,6 +86,8 @@ export function createWsSource(token: string): OfficeDataSource {
     updateWorkflow: (patch) => send("updateWorkflow", patch),
     updateProject: (patch) => send("updateProject", patch),
     setProjectRoom: (room) => send("setProjectRoom", room),
+    addProjectRoom: (room) => send("addProjectRoom", room),
+    removeProjectRoom: (id) => send("removeProjectRoom", id),
     createBoard: (title) => send("createBoard", title),
     updateBoard: (id, patch) => send("updateBoard", id, patch),
     completeWelcome: (input) => send("completeWelcome", input),

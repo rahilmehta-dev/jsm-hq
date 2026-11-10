@@ -208,6 +208,8 @@ export const officeActions = {
   updateWorkflow: source.updateWorkflow.bind(source),
   updateProject: source.updateProject.bind(source),
   setProjectRoom: source.setProjectRoom.bind(source),
+  addProjectRoom: source.addProjectRoom.bind(source),
+  removeProjectRoom: source.removeProjectRoom.bind(source),
   createBoard: source.createBoard.bind(source),
   updateBoard: source.updateBoard.bind(source),
   completeWelcome: (input: WelcomeInput) => source.completeWelcome(input),

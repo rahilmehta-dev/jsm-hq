@@ -14,7 +14,7 @@ import type { Sbx } from "./sbx";
 import type { SbxMcp } from "./sbxMcp";
 import type { Sessions } from "./sessions";
 import { parseOllamaUrl } from "./ollama";
-import { cleanProjectRoom, setRoom } from "./room";
+import { cleanProjectRoom, MAX_ROOMS, removeRoom, setRoom, upsertRoom } from "./room";
 import { newAgent } from "./store";
 import { mergeByNotice } from "./githubSync";
 import { prRef } from "./github";
@@ -384,6 +384,16 @@ export function makeCommands(hub: Hub, sessions: Sessions, planner: Planner, inb
 
     setProjectRoom: (raw) => {
       setRoom(hub, cleanProjectRoom(raw));
+    },
+
+    addProjectRoom: (raw) => {
+      const room = cleanProjectRoom(raw);
+      if (!room) return;
+      if (!upsertRoom(hub, room)) hub.activity("config", null, `At most ${MAX_ROOMS} project rooms.`);
+    },
+
+    removeProjectRoom: (id) => {
+      removeRoom(hub, str(id, 40));
     },
 
     createBoard: (title) => planner.createBoard(str(title, 80)),

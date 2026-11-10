@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { nextAgentName } from "../../data/names";
-import { CLI_LABEL, DEFAULT_OLLAMA_URL, supportsOllama, WORKER_KIND_LABEL, type AgentCli, type AgentConfig, type AgentMode, type ModelProvider, type ProjectRoomConfig, type ProjectWorkerKind } from "../../data/types";
+import { CLI_LABEL, DEFAULT_OLLAMA_URL, projectRoomsOf, roomWorkerKey, supportsOllama, WORKER_KIND_LABEL, type AgentCli, type AgentConfig, type AgentMode, type ModelProvider, type ProjectRoomConfig, type ProjectWorkerKind, type RoomWorkerStatus } from "../../data/types";
 import { officeActions, useOffice } from "../../store/office";
 import { agentPalette } from "../../theme/tokens";
 import { Field, Portrait, SectionTitle } from "../kit";
@@ -161,51 +161,120 @@ function AgentRow({ agent, expanded, onToggle, onRemove }: { agent: AgentConfig;
   );
 }
 
-/** The project room: a separate room in the office for the project's own workers (scripts, bots, a model), not coding agents. */
+type RoomView = ProjectRoomConfig & { id: string };
+
+/** What a worker is doing right now, from the status its project reported (expired statuses count as idle). */
+function liveStatus(st: RoomWorkerStatus | undefined): { label: string; tone: string } {
+  if (!st || Date.now() - Date.parse(st.at) > st.ttl * 1000) return { label: "Idle", tone: "#b9b5ab" };
+  const label = st.note ? `${st.state}: ${st.note}` : st.state;
+  return { label: label[0].toUpperCase() + label.slice(1), tone: st.state === "error" ? "#d6455d" : st.state === "done" ? "#3f8f5a" : "#2f7fc4" };
+}
+
+/** Project rooms: one pavilion per project on the campus, each with its own workers, demo switch and live status. */
 function ProjectRoomSettings() {
-  const room = useOffice((s) => s.snap?.config.projectRoom);
-  const [name, setName] = useState("");
-  const [kind, setKind] = useState<ProjectWorkerKind>("fetcher");
-  const workers = room?.workers ?? [];
+  const config = useOffice((s) => s.snap?.config);
+  const statuses = useOffice((s) => s.snap?.roomWorkers);
   const api = useOffice((s) => s.snap?.roomApi);
-  const [shown, setShown] = useState(false);
-  const save = (next: ProjectRoomConfig | null) => officeActions.setProjectRoom(next);
-  const rename = (v: string) => save({ name: v.trim() || "Project room", workers });
-  const change = (i: number, patch: Partial<ProjectRoomConfig["workers"][number]>) => save({ name: room?.name ?? "Project room", workers: workers.map((w, k) => (k === i ? { ...w, ...patch } : w)) });
-  const add = () => {
-    const label = name.trim() || WORKER_KIND_LABEL[kind].split(" ")[0];
-    save({ name: room?.name ?? "Project room", workers: [...workers, { id: "", name: label, kind, color: agentPalette[(workers.length + 3) % agentPalette.length] }] });
-    setName("");
-  };
+  const rooms = config ? projectRoomsOf(config) : [];
+  const scoped = rooms.length > 1;
+  const [name, setName] = useState("");
   return (
     <section className="rounded-xl border border-dashed border-line p-3">
-      <SectionTitle>Project room</SectionTitle>
+      <SectionTitle>Project rooms</SectionTitle>
       <p className="mb-3 text-[13px] text-muted">
-        A separate room in the office for your project's own workers: a script that fetches emails, a local model that writes them, a bot that sends them. They aren't coding agents. A project reports what they do through a local API (see Connect a project below); until then they play a demo animation.
+        Each project gets its own pavilion on the campus for its own workers: a script that fetches emails, a local model that writes them, a bot that sends them. They aren't coding agents. A project reports what they do through a local API (see Connect a project below); until then its pavilion plays a demo animation.
       </p>
-      <div className="mb-3 max-w-[360px]">
-        <Field label="Room name">
-          <CommitInput className="field" value={room?.name ?? ""} placeholder="Job referrals" onCommit={rename} />
-        </Field>
+      <div className="flex flex-col gap-3">
+        {rooms.map((room) => (
+          <RoomCard key={room.id} room={room} scoped={scoped} statuses={statuses} />
+        ))}
+      </div>
+      {rooms.length < 12 && (
+        <form
+          className="mt-3 grid max-w-[460px] grid-cols-[1fr_auto] items-end gap-2.5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            officeActions.addProjectRoom({ name: name.trim() || "Project room", workers: [] });
+            setName("");
+          }}
+        >
+          <Field label="New project room">
+            <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Job referrals" />
+          </Field>
+          <button className="btn" type="submit">
+            Add a project room
+          </button>
+        </form>
+      )}
+      {rooms.length > 0 && (
+        <p className="mt-2 text-[12px] text-muted">
+          {scoped ? `${rooms.length} rooms.` : "One room."} A project adds its own room by calling <code>PUT /room</code> (or the <code>setup_project_room</code> tool); it appears here and on the campus right away.
+        </p>
+      )}
+      <Connect api={api} rooms={rooms} scoped={scoped} />
+    </section>
+  );
+}
+
+function RoomCard({ room, scoped, statuses }: { room: RoomView; scoped: boolean; statuses: Record<string, RoomWorkerStatus> | undefined }) {
+  const [name, setName] = useState("");
+  const [kind, setKind] = useState<ProjectWorkerKind>("fetcher");
+  const workers = room.workers;
+  // Always send the room's id, so with several rooms the server updates this one (and a rename keeps its id).
+  const save = (patch: Partial<ProjectRoomConfig>) => officeActions.setProjectRoom({ id: room.id, name: room.name, workers, ...(room.demo === false ? { demo: false } : {}), ...patch });
+  const change = (i: number, patch: Partial<ProjectRoomConfig["workers"][number]>) => save({ workers: workers.map((w, k) => (k === i ? { ...w, ...patch } : w)) });
+  const add = () => {
+    const label = name.trim() || WORKER_KIND_LABEL[kind].split(" ")[0];
+    save({ workers: [...workers, { id: "", name: label, kind, color: agentPalette[(workers.length + 3) % agentPalette.length] }] });
+    setName("");
+  };
+  const reporting = workers.some((w) => statuses?.[roomWorkerKey(room.id, w.id, scoped)]);
+  return (
+    <div className="rounded-xl border border-line bg-white p-3" role="group" aria-label={`Project room ${room.name}`}>
+      <div className="mb-2 flex flex-wrap items-end gap-3">
+        <div className="min-w-[220px] max-w-[360px] flex-1">
+          <Field label="Room name">
+            <CommitInput className="field" value={room.name} placeholder="Job referrals" onCommit={(v) => save({ name: v.trim() || "Project room" })} />
+          </Field>
+        </div>
+        <span className="chip" style={{ ["--c" as string]: reporting ? "#d9eedf" : "#f6e9b8" }}>
+          {reporting ? "Project connected" : room.demo === false ? "Waiting for a project" : "Demo animation"}
+        </span>
+        <button
+          className="btn ml-auto px-2 text-[13px] text-red"
+          onClick={() => window.confirm(`Remove the project room "${room.name}" and its ${workers.length} worker${workers.length === 1 ? "" : "s"}?`) && officeActions.removeProjectRoom(room.id)}
+        >
+          Remove room
+        </button>
+        <code className="rounded-md bg-cream-2 px-1.5 py-0.5 text-[12px] text-muted" title="Room id: use it as ?room=<id> or HQ_ROOM_ID">
+          {room.id}
+        </code>
       </div>
       {workers.length > 0 && (
         <div className="mb-3 flex flex-col gap-2">
-          {workers.map((w, i) => (
-            <div key={`${w.id}-${i}`} className="grid grid-cols-[28px_1fr_220px_auto] items-center gap-2.5 rounded-xl border border-line bg-white p-2">
-              <span className="h-5 w-5 rounded-full border border-line" style={{ background: w.color }} aria-hidden />
-              <CommitInput className="field" value={w.name} onCommit={(v) => v.trim() && change(i, { name: v.trim() })} />
-              <select className="field" value={w.kind} aria-label="What it does" onChange={(e) => change(i, { kind: e.target.value as ProjectWorkerKind })}>
-                {(Object.keys(WORKER_KIND_LABEL) as ProjectWorkerKind[]).map((k) => (
-                  <option key={k} value={k}>
-                    {WORKER_KIND_LABEL[k]}
-                  </option>
-                ))}
-              </select>
-              <button className="btn px-2 text-[13px] text-red" onClick={() => save({ name: room?.name ?? "Project room", workers: workers.filter((_, k) => k !== i) })}>
-                Remove
-              </button>
-            </div>
-          ))}
+          {workers.map((w, i) => {
+            const st = liveStatus(statuses?.[roomWorkerKey(room.id, w.id, scoped)]);
+            return (
+              <div key={`${w.id}-${i}`} className="grid grid-cols-[28px_1fr_200px_minmax(0,1.1fr)_auto] items-center gap-2.5 rounded-lg border border-line bg-cream p-2">
+                <span className="h-5 w-5 rounded-full border border-line" style={{ background: w.color }} aria-hidden />
+                <CommitInput className="field" value={w.name} aria-label="Worker name" onCommit={(v) => v.trim() && change(i, { name: v.trim() })} />
+                <select className="field" value={w.kind} aria-label="What it does" onChange={(e) => change(i, { kind: e.target.value as ProjectWorkerKind })}>
+                  {(Object.keys(WORKER_KIND_LABEL) as ProjectWorkerKind[]).map((k) => (
+                    <option key={k} value={k}>
+                      {WORKER_KIND_LABEL[k]}
+                    </option>
+                  ))}
+                </select>
+                <span className="flex min-w-0 items-center gap-1.5 text-[12px] text-muted" title={st.label}>
+                  <i className="h-2 w-2 shrink-0 rounded-full" style={{ background: st.tone }} aria-hidden />
+                  <span className="truncate">{st.label}</span>
+                </span>
+                <button className="btn px-2 text-[13px] text-red" onClick={() => save({ workers: workers.filter((_, k) => k !== i) })}>
+                  Remove
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
       <form
@@ -233,40 +302,55 @@ function ProjectRoomSettings() {
       </form>
       {workers.length > 0 && (
         <label className="mt-3 flex items-center gap-2 text-[13px]">
-          <input type="checkbox" checked={room?.demo !== false} onChange={(e) => save({ name: room?.name ?? "Project room", workers, ...(e.target.checked ? {} : { demo: false }) })} />
+          <input type="checkbox" checked={room.demo !== false} onChange={(e) => save({ demo: e.target.checked ? undefined : false })} />
           Play the demo animation until a project connects
         </label>
       )}
-      <div className="mt-3 rounded-xl border border-line bg-cream p-3">
-        <div className="mb-1 text-[13px] font-bold">Connect a project</div>
-        <p className="mb-2 text-[12px] text-muted">
-          Any project can create this room and show what its workers do, through a small local HTTP API. Set these two variables in the project, then use the Python or Node helper in <code>sdk/</code> (see <code>docs/project-rooms.md</code>).
-        </p>
-        {api ? (
-          <>
-            <pre className="mb-2 overflow-x-auto whitespace-pre-wrap break-all rounded-lg border border-line bg-white p-2 font-term text-[15px]">{`export HQ_ROOM_URL=${api.url}\nexport HQ_ROOM_TOKEN=${shown ? api.token : "•".repeat(16)}`}</pre>
-            <div className="flex gap-2">
-              <button className="btn px-2 text-[13px]" onClick={() => setShown(!shown)}>
-                {shown ? "Hide token" : "Show token"}
-              </button>
-              <button className="btn px-2 text-[13px]" onClick={() => void navigator.clipboard?.writeText(`export HQ_ROOM_URL=${api.url}\nexport HQ_ROOM_TOKEN=${api.token}`)}>
-                Copy
-              </button>
+    </div>
+  );
+}
+
+function Connect({ api, rooms, scoped }: { api: { url: string; token: string } | undefined; rooms: RoomView[]; scoped: boolean }) {
+  const [shown, setShown] = useState(false);
+  const [pick, setPick] = useState("");
+  const room = rooms.find((r) => r.id === pick) ?? rooms[0];
+  const vars = (token: string) => `export HQ_ROOM_URL=${api?.url}\nexport HQ_ROOM_TOKEN=${token}${scoped && room ? `\nexport HQ_ROOM_ID=${room.id}` : ""}`;
+  return (
+    <div className="mt-3 rounded-xl border border-line bg-cream p-3">
+      <div className="mb-1 text-[13px] font-bold">Connect a project</div>
+      <p className="mb-2 text-[12px] text-muted">
+        Any project can create its room and show what its workers do, through a small local HTTP API. Set these variables in the project, then use the Python or Node helper in <code>sdk/</code> (see <code>docs/project-rooms.md</code>).
+        {scoped ? " With several rooms, each project also sets its own room id." : ""}
+      </p>
+      {api ? (
+        <>
+          {scoped && (
+            <div className="mb-2 max-w-[320px]">
+              <Field label="For room">
+                <select className="field" value={room?.id ?? ""} onChange={(e) => setPick(e.target.value)}>
+                  {rooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
             </div>
-          </>
-        ) : (
-          <p className="text-[12px] text-muted">Available when you run My HQ on a repo (not in the demo).</p>
-        )}
-      </div>
-      {workers.length > 0 && (
-        <p className="mt-2 text-[12px] text-muted">
-          Removing every worker removes the room.{" "}
-          <button className="underline" onClick={() => save(null)}>
-            Remove the room
-          </button>
-        </p>
+          )}
+          <pre className="mb-2 overflow-x-auto whitespace-pre-wrap break-all rounded-lg border border-line bg-white p-2 font-term text-[13px]">{vars(shown ? api.token : "•".repeat(16))}</pre>
+          <div className="flex gap-2">
+            <button className="btn px-2 text-[13px]" onClick={() => setShown(!shown)}>
+              {shown ? "Hide token" : "Show token"}
+            </button>
+            <button className="btn px-2 text-[13px]" onClick={() => void navigator.clipboard?.writeText(vars(api.token))}>
+              Copy
+            </button>
+          </div>
+        </>
+      ) : (
+        <p className="text-[12px] text-muted">Available when you run My HQ on a repo (not in the demo).</p>
       )}
-    </section>
+    </div>
   );
 }
 

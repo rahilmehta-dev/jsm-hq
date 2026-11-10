@@ -1,7 +1,7 @@
 import { agentPalette } from "../../theme/tokens";
 import type { OfficeDataSource, OfficeEvent, SimSpeed } from "../source";
 import { stackDomains } from "../stack";
-import { HOST_TERMINAL, type AccessRequest, AgentConfig, AgentPatch, Board, NewAgentInput, ProjectConfig, SandboxSettings, WorkflowPatch } from "../types";
+import { HOST_TERMINAL, projectRoomsOf, roomIdOf, type ProjectRoomConfig, type AccessRequest, AgentConfig, AgentPatch, Board, NewAgentInput, ProjectConfig, SandboxSettings, WorkflowPatch } from "../types";
 import { defaultPresetId, presets, type Preset } from "./presets";
 import { Simulation } from "./simulation";
 import * as T from "./terminalScripts";
@@ -19,6 +19,19 @@ export function createMockSource(): OfficeDataSource {
   let timers: number[] = [];
   let last = 0;
   let inputBuf = new Map<string, string>();
+
+  /** Saves the rooms (and the first as the legacy `projectRoom`); statuses are not tracked in the mock. */
+  function setRooms(rooms: (ProjectRoomConfig & { id: string })[]) {
+    const cfg = world.snap.config;
+    if (rooms.length) {
+      cfg.projectRooms = rooms;
+      cfg.projectRoom = rooms[0];
+    } else {
+      delete cfg.projectRooms;
+      delete cfg.projectRoom;
+    }
+    world.configChanged();
+  }
 
   function findPreset(id: string): Preset {
     return presets.find((p) => p.id === id) ?? presets[0];
@@ -406,9 +419,24 @@ export function createMockSource(): OfficeDataSource {
     },
 
     setProjectRoom(room) {
-      if (room) world.snap.config.projectRoom = structuredClone(room);
-      else delete world.snap.config.projectRoom;
-      world.configChanged();
+      const rooms = projectRoomsOf(world.snap.config);
+      if (!room) return setRooms(rooms.slice(1));
+      const next = { ...structuredClone(room), id: roomIdOf(room) };
+      if (rooms.length <= 1) return setRooms([next]);
+      setRooms(rooms.map((r) => (r.id === next.id ? next : r)));
+    },
+
+    addProjectRoom(room) {
+      const rooms = projectRoomsOf(world.snap.config);
+      const next = { ...structuredClone(room), id: roomIdOf(room) };
+      const at = rooms.findIndex((r) => r.id === next.id);
+      if (at === -1 && rooms.length < 12) rooms.push(next);
+      else if (at !== -1) rooms[at] = next;
+      setRooms(rooms);
+    },
+
+    removeProjectRoom(id) {
+      setRooms(projectRoomsOf(world.snap.config).filter((r) => r.id !== id));
     },
 
     createBoard(title) {
