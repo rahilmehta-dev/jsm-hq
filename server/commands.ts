@@ -233,7 +233,7 @@ export function makeCommands(hub: Hub, sessions: Sessions, planner: Planner, inb
       cfg.stack = stack;
       hub.configChanged();
       // Fetch the skills now so the next Start doesn't wait for them.
-      const specs = stackSkills(cfg.stack);
+      const specs = stackSkills(cfg.stack, !!cfg.project.ponytail);
       if (specs.length) void ensureSkillCache(hub.slug, specs).catch((e) => hub.activity("config", null, `Couldn't fetch agent skills: ${String(e instanceof Error ? e.message : e).slice(0, 160)}`));
     },
 
@@ -268,7 +268,7 @@ export function makeCommands(hub: Hub, sessions: Sessions, planner: Planner, inb
       const stack = cleanStack(input.stack);
       if (stack) {
         cfg.stack = stack;
-        const specs = stackSkills(stack);
+        const specs = stackSkills(stack, !!cfg.project.ponytail);
         if (specs.length) void ensureSkillCache(hub.slug, specs).catch(() => {}); // retried on Start
       }
       hub.snap.agents = cfg.team.map((a) => Hub.freshStatus(a.id));
@@ -307,9 +307,21 @@ export function makeCommands(hub: Hub, sessions: Sessions, planner: Planner, inb
         if (name) project.officeName = name;
         else delete project.officeName;
       }
+      const ponytailChanged = typeof p.ponytail === "boolean" && p.ponytail !== !!project.ponytail;
+      if (typeof p.ponytail === "boolean") {
+        if (p.ponytail) project.ponytail = true;
+        else delete project.ponytail;
+      }
       const exportOn = typeof p.exportPlan === "boolean" && p.exportPlan && !project.exportPlan;
       if (typeof p.exportPlan === "boolean") project.exportPlan = p.exportPlan;
       hub.configChanged();
+      if (ponytailChanged) {
+        // Refresh the cache now (off drops the ponytail skills from it). Agents get the change, and lose the skills when it's off, on their next start.
+        const on = !!project.ponytail;
+        void ensureSkillCache(hub.slug, stackSkills(hub.snap.config.stack, on))
+          .then(() => hub.activity("config", null, `Ponytail is ${on ? "on" : "off"}. Agents ${on ? "get its skills" : "drop its skills"} the next time they start.`))
+          .catch((e) => hub.activity("config", null, `Couldn't fetch agent skills: ${String(e instanceof Error ? e.message : e).slice(0, 160)}`));
+      }
       if (exportOn) {
         hub.planChanged();
         hub.activity("config", null, "Plan export on: HQ writes docs/plan.md whenever the plan changes.");

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import {
   EMPTY_STACK,
+  PONYTAIL_SKILLS,
+  PONYTAIL_URL,
   frameworks,
   STACK_CATEGORIES,
   stackDomains,
@@ -35,6 +37,7 @@ export function StackSettings() {
       </p>
 
       <Frameworks stack={stack} save={save} />
+      <Ponytail />
 
       <section>
         <SectionTitle>Tools</SectionTitle>
@@ -62,6 +65,28 @@ export function StackSettings() {
         </>
       )}
     </div>
+  );
+}
+
+/** Not a stack tool: a ruleset for how agents write code, on for every agent HQ starts in this project. */
+function Ponytail() {
+  const on = useOffice((s) => !!s.snap?.config.project.ponytail);
+  return (
+    <section>
+      <SectionTitle>Agent style</SectionTitle>
+      <label className="flex items-start gap-2.5 border-[3px] border-ink bg-white px-3 py-2">
+        <input type="checkbox" className="mt-1" checked={on} onChange={(e) => officeActions.updateProject({ ponytail: e.target.checked })} />
+        <span>
+          <b className="text-[15px]">Ponytail: lazy senior dev mode</b>
+          <span className="block text-[13px] text-muted">
+            Agents write the least code that works, and get {PONYTAIL_SKILLS.skills.length} ponytail skills for reviews and audits. Takes effect when each agent next starts.{" "}
+            <a className="underline" href={PONYTAIL_URL} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+              About ponytail
+            </a>
+          </span>
+        </span>
+      </label>
+    </section>
   );
 }
 

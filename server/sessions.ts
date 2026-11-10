@@ -107,7 +107,7 @@ export class Sessions {
       // App variables reach the agent in sandbox mode and in Local mode with tmux (not Local on Windows).
       const hasEnvFile = !!this.envFileFor(id) && (agent.mode === "sandbox" || this.backend.persistent);
       await adapter.writeFiles(dir, agent, hub.snap.config, this.agentToken, { hasEnvFile });
-      const specs = stackSkills(hub.snap.config.stack);
+      const specs = stackSkills(hub.snap.config.stack, !!hub.snap.config.project.ponytail);
       if (specs.length || hasHqSkills(hub.slug, dir)) {
         hub.setSession(id, { detail: "Installing agent skills…" });
         const skills = await prepareSkills(hub.slug, dir, specs);
