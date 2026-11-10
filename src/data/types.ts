@@ -30,14 +30,26 @@ export type AgentCli = "claude" | "codex" | "gemini" | "antigravity";
 
 export const CLI_LABEL: Record<AgentCli, string> = { claude: "Claude Code", codex: "Codex", gemini: "Gemini CLI", antigravity: "Antigravity CLI" };
 
-/** Where an agent's model comes from: the CLI's own cloud account, or a local Ollama server. */
-export type ModelProvider = "default" | "ollama";
+/**
+ * Where an agent's model comes from: the CLI's own cloud account, a local Ollama server, or any other
+ * OpenAI/Anthropic-compatible server on this machine or the LAN ("local", for example Strata).
+ */
+export type ModelProvider = "default" | "ollama" | "local";
+
+/** The "local" provider's label in Settings. */
+export const LOCAL_SERVER_LABEL = "Local server (OpenAI/Anthropic-compatible)";
+
+/** A local server's address when the project doesn't set one (shown as a hint; the setting is empty until typed). */
+export const DEFAULT_LOCAL_SERVER_URL = "http://127.0.0.1:47831";
 
 /** Ollama's address when the project doesn't set one. */
 export const DEFAULT_OLLAMA_URL = "http://localhost:11434";
 
 /** Only Claude Code and Codex can run on a local Ollama model. */
 export const supportsOllama = (cli: AgentCli) => cli === "claude" || cli === "codex";
+
+/** Same two CLIs for a local server: Claude Code over the Anthropic API, Codex over the OpenAI one. */
+export const supportsLocalServer = supportsOllama;
 
 /** Narrows untrusted input (a UI message, an edited config) to a known CLI. */
 export const isAgentCli = (v: unknown): v is AgentCli => typeof v === "string" && Object.hasOwn(CLI_LABEL, v);
@@ -61,6 +73,8 @@ export interface AgentConfig {
   provider?: ModelProvider;
   /** The Ollama model to run when provider is "ollama" (for example "qwen3-coder"). */
   ollamaModel?: string;
+  /** The model id to run when provider is "local" (one of the server's /v1/models, for example "q2_0"). */
+  localModel?: string;
 }
 
 /** An MCP server registered with Docker Sandboxes (`sbx mcp ls`). */
@@ -108,6 +122,7 @@ export interface ProjectConfig {
   exportPlan?: boolean; // also write the plan to docs/plan.md
   officeName?: string; // the sign on the office wall; empty = "My HQ"
   ollamaUrl?: string; // where Ollama runs for agents on the "ollama" provider; absent = DEFAULT_OLLAMA_URL
+  localServerUrl?: string; // base address of the OpenAI/Anthropic-compatible server for the "local" provider (no /v1); absent = DEFAULT_LOCAL_SERVER_URL
   ponytail?: boolean; // install the ponytail skills (DietrichGebert/ponytail) for every agent; default off
 }
 
@@ -336,7 +351,7 @@ export interface RemoveAgentOptions {
 
 // ---------------------------------------------------------------- Setup
 
-export type SetupCheckId = "os" | "sbx" | "sbx-login" | "sbx-policy" | "tmux" | "gh" | "gh-remote" | "github-secret" | "claude" | "codex" | "openai-secret" | "gemini" | "antigravity" | "google-secret" | "ollama" | "ollama-model";
+export type SetupCheckId = "os" | "sbx" | "sbx-login" | "sbx-policy" | "tmux" | "gh" | "gh-remote" | "github-secret" | "claude" | "codex" | "openai-secret" | "gemini" | "antigravity" | "google-secret" | "ollama" | "ollama-model" | "local-server" | "local-model";
 export type SetupStatus = "ok" | "missing" | "unsupported" | "warning";
 
 export interface SetupFix {
@@ -414,6 +429,8 @@ export interface SetupState {
   checks: SetupCheck[];
   sandboxReady: boolean; // every sandbox check passes
   localReady: boolean; // Local mode can run
+  /** Model ids the project's local server listed (GET /v1/models), when an agent uses the "local" provider. */
+  localModels?: string[];
   checkedAt: string;
 }
 
@@ -465,6 +482,7 @@ export interface NewAgentInput {
   mode: AgentMode;
   provider?: ModelProvider;
   ollamaModel?: string;
+  localModel?: string;
 }
 
 /** First-run choices from the welcome screen. */
@@ -479,7 +497,7 @@ export interface WelcomeInput {
 }
 
 export type AgentPatch = Partial<
-  Pick<AgentConfig, "name" | "role" | "cli" | "model" | "mode" | "color" | "skills" | "roleMd" | "workspacePath" | "provider" | "ollamaModel">
+  Pick<AgentConfig, "name" | "role" | "cli" | "model" | "mode" | "color" | "skills" | "roleMd" | "workspacePath" | "provider" | "ollamaModel" | "localModel">
 >;
 
 export interface WorkflowPatch {

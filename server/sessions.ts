@@ -10,7 +10,7 @@ import { hasHqSkills, prepareSkills } from "./skills";
 import { resolve, sep } from "node:path";
 import { CLI_LABEL, HOST_TERMINAL, type AgentCli, type AgentConfig, type SetupCheckId, type WorkspaceInfo } from "../src/data/types";
 import { adapters, localBinary } from "./adapters";
-import { findModel, ollamaBaseUrl, ollamaPolicyTargets, ollamaStatus, usesOllama } from "./ollama";
+import { findModel, localServerBaseUrl, localServerModels, localServerPolicyTargets, ollamaBaseUrl, ollamaPolicyTargets, ollamaStatus, probeLocalWire, usesLocalServer, usesOllama, type LocalWire } from "./ollama";
 import type { Hub } from "./hub";
 import { sessionBackend, type LaunchSpec, type TermHandle } from "./backends";
 import { resolveCommand } from "./backends/pty";
@@ -60,6 +60,7 @@ export class Sessions {
   private shellGen = new Map<string, number>();
   /** Sandbox network rules already known to be in place this run. */
   private allowed = new Set<string>();
+  private wires = new Map<string, LocalWire>(); // the API each Codex agent uses with a local server, as probed at its last start
   /** Called whenever an agent's Claude Code session goes away (stop, restart, crash). */
   onSessionDown: (agentId: string) => void = () => {};
   /** Called once an agent's sandbox exists after Start (to apply its network rules). */
@@ -111,6 +112,10 @@ export class Sessions {
       const problem = await this.ollamaProblem(agent);
       if (problem) return fail(problem);
     }
+    if (usesLocalServer(agent)) {
+      const problem = await this.localServerProblem(agent);
+      if (problem) return fail(problem);
+    }
 
     const name = this.name(id);
     this.onSessionDown(id);
@@ -120,7 +125,11 @@ export class Sessions {
       const adapter = adapters[agent.cli];
       // App variables reach the agent in sandbox mode and in Local mode with tmux (not Local on Windows).
       const hasEnvFile = !!this.envFileFor(id) && (agent.mode === "sandbox" || this.backend.persistent);
-      await adapter.writeFiles(dir, agent, hub.snap.config, this.agentToken, { hasEnvFile });
+      // Codex talks to a local server over the Responses API when it has one, else chat completions.
+      const localWire: LocalWire | undefined =
+        usesLocalServer(agent) && agent.cli === "codex" ? await probeLocalWire(localServerBaseUrl(hub.snap.config), agent.localModel?.trim() ?? "") : undefined;
+      if (localWire) this.wires.set(id, localWire);
+      await adapter.writeFiles(dir, agent, hub.snap.config, this.agentToken, { hasEnvFile, localWire });
       const specs = stackSkills(hub.snap.config.stack, !!hub.snap.config.project.ponytail);
       if (specs.length || hasHqSkills(hub.slug, dir)) {
         hub.setSession(id, { detail: "Installing agent skills…" });
@@ -136,7 +145,7 @@ export class Sessions {
           hub.activity("session", id, `${agent.name}'s env file isn't loaded in Local mode on Windows. Use Sandbox mode for app variables.`);
         if (agent.mode === "sandbox") {
           hub.setSession(id, { detail: "Allowing the sandbox to reach HQ…" });
-          await this.ensurePolicy([...(usesOllama(agent) ? ollamaPolicyTargets(hub.snap.config) : []), ...(launch.policyHosts ?? [])]);
+          await this.ensurePolicy([...(usesOllama(agent) ? ollamaPolicyTargets(hub.snap.config) : []), ...(usesLocalServer(agent) ? localServerPolicyTargets(hub.snap.config) : []), ...(launch.policyHosts ?? [])]);
           hub.setSession(id, { detail: "Starting sandbox…" });
           // sbx only accepts a size when it creates the sandbox; an existing (stopped) one keeps its size,
           // and passing --cpus/--memory again makes `sbx run` fail. "Recreate sandbox" applies a new size.
@@ -187,7 +196,7 @@ export class Sessions {
     if (!existsSync(dir)) return;
     try {
       const hasEnvFile = !!this.envFileFor(id) && (agent.mode === "sandbox" || this.backend.persistent);
-      await adapters[agent.cli].writeFiles(dir, agent, this.hub.snap.config, this.agentToken, { hasEnvFile });
+      await adapters[agent.cli].writeFiles(dir, agent, this.hub.snap.config, this.agentToken, { hasEnvFile, localWire: this.wires.get(id) });
     } catch (err) {
       log.warn(`role files for ${agent.name}: ${err instanceof Error ? err.message : String(err)}`);
     }
@@ -344,6 +353,17 @@ export class Sessions {
     const status = await ollamaStatus(url);
     if (!status) return `Ollama isn't reachable at ${url}. Start it (ollama serve), or change the address in Settings → Team.`;
     if (!findModel(status, model)) return `Ollama doesn't have ${model}. Run: ollama pull ${model}`;
+    return null;
+  }
+
+  /** Why an agent on a local server can't start (not reachable, model not listed), or null. Checked live. */
+  private async localServerProblem(agent: AgentConfig): Promise<string | null> {
+    const url = localServerBaseUrl(this.hub.snap.config);
+    const model = agent.localModel?.trim();
+    if (!model) return `${agent.name} runs on a local server but has no model. Set one in Settings → Team.`;
+    const models = await localServerModels(url);
+    if (!models) return `The local server isn't reachable at ${url}/v1/models. Start it, or change the address in Settings → Team.`;
+    if (!models.includes(model)) return `The local server doesn't list ${model}. It has: ${models.join(", ") || "no models"}.`;
     return null;
   }
 
@@ -590,7 +610,7 @@ export class Sessions {
   // ------------------------------------------------------------ setup helper
 
   async recheckSetup() {
-    this.hub.setSetup(await runSetupChecks(this.hub.repo, this.hub.snap.config.team, ollamaBaseUrl(this.hub.snap.config)));
+    this.hub.setSetup(await runSetupChecks(this.hub.repo, this.hub.snap.config.team, ollamaBaseUrl(this.hub.snap.config), localServerBaseUrl(this.hub.snap.config)));
   }
 
   /** Runs a program in a terminal the browser can watch and type into (id must start with "setup:"). */

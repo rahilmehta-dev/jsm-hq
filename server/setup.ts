@@ -2,11 +2,11 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { arch, cpus, platform, release, totalmem } from "node:os";
-import { DEFAULT_OLLAMA_URL, type AgentConfig, type SetupCheck, type SetupFix, type SetupState } from "../src/data/types";
+import { DEFAULT_LOCAL_SERVER_URL, DEFAULT_OLLAMA_URL, type AgentConfig, type SetupCheck, type SetupFix, type SetupState } from "../src/data/types";
 import { usesTmux } from "./backends";
 import { parseCliJson, sandboxList } from "./lib/json";
 import { has, run } from "./lib/exec";
-import { findModel, OLLAMA_MIN_VERSION, olderThan, ollamaStatus, usesOllama } from "./ollama";
+import { findModel, localServerModels, OLLAMA_MIN_VERSION, olderThan, ollamaStatus, usesLocalServer, usesOllama } from "./ollama";
 import type { RepoInfo } from "./repo";
 
 const SBX_DOCS = "https://docs.docker.com/ai/sandboxes/install/";
@@ -263,8 +263,27 @@ async function checkOllamaModels(url: string, team: AgentConfig[]): Promise<Chec
   return { ...base, status: "ok", detail: `${wanted.join(", ")} pulled. Tool-calling quality varies a lot between local models.`, fix: null };
 }
 
+/** The local server answers GET /v1/models at its address. */
+function checkLocalServer(url: string, models: string[] | null): Check {
+  const base = { id: "local-server" as const, label: "Local model server (for agents on a local server)", neededFor: "all" as const };
+  if (!models) return { ...base, status: "missing", detail: `Not answering at ${url}/v1/models. Start the server, or change the address in Settings → Team. If it needs a key, start HQ with HQ_LOCAL_SERVER_API_KEY set.`, fix: null };
+  return { ...base, status: "ok", detail: `${url} · ${models.length} model${models.length === 1 ? "" : "s"}`, fix: null };
+}
+
+/** Each local-server agent has a model, and the server lists it. */
+function checkLocalModels(models: string[] | null, team: AgentConfig[]): Check {
+  const base = { id: "local-model" as const, label: "Models for agents on a local server", neededFor: "all" as const };
+  if (!models) return { ...base, status: "missing", detail: "Waiting for the local server.", fix: null };
+  const agents = team.filter(usesLocalServer);
+  const unset = agents.filter((a) => !a.localModel?.trim());
+  if (unset.length) return { ...base, status: "missing", detail: `${unset.map((a) => a.name).join(", ")} ${unset.length === 1 ? "has" : "have"} no model. Pick one in Settings → Team.`, fix: null };
+  const missing = [...new Set(agents.map((a) => a.localModel!.trim()))].filter((m) => !models.includes(m));
+  if (missing.length) return { ...base, status: "missing", detail: `The server doesn't list: ${missing.join(", ")}. It has: ${models.join(", ") || "no models"}.`, fix: null };
+  return { ...base, status: "ok", detail: "Listed by the server. Tool-calling quality varies a lot between local models.", fix: null };
+}
+
 /** `team` adds the Codex, Gemini, Antigravity and Ollama checks only when the team has such agents. */
-export async function runSetupChecks(repo: RepoInfo, team: AgentConfig[] = [], ollamaUrl = DEFAULT_OLLAMA_URL): Promise<SetupState> {
+export async function runSetupChecks(repo: RepoInfo, team: AgentConfig[] = [], ollamaUrl = DEFAULT_OLLAMA_URL, localServerUrl = DEFAULT_LOCAL_SERVER_URL): Promise<SetupState> {
   const brew = os === "darwin" && (await has("brew"));
   const [osCheck, sbx, tmux, claude, gh] = await Promise.all([checkOs(), checkSbx(brew), checkTmux(brew), checkClaude(), checkGh(brew)]);
   const sbxOk = sbx.status === "ok";
@@ -279,12 +298,19 @@ export async function runSetupChecks(repo: RepoInfo, team: AgentConfig[] = [], o
   if (geminiAgents.some((a) => a.mode === "local")) checks.push(await checkGemini());
   if (team.some((a) => a.cli === "antigravity")) checks.push(await checkAntigravity());
   if (team.some(usesOllama)) checks.push(await checkOllama(ollamaUrl, team), await checkOllamaModels(ollamaUrl, team));
+  let localModels: string[] | undefined;
+  if (team.some(usesLocalServer)) {
+    const listed = await localServerModels(localServerUrl);
+    localModels = listed ?? undefined;
+    checks.push(checkLocalServer(localServerUrl, listed), checkLocalModels(listed, team));
+  }
   const ok = (c: SetupCheck) => c.status === "ok";
   return {
     machine: { cpus: cpus().length, memoryGb: Math.round(totalmem() / 1024 ** 3), persistentAgents: usesTmux() },
     checks,
     sandboxReady: osCheck.status !== "unsupported" && ok(sbx) && ok(login) && ok(policy) && ok(tmux),
     localReady: ok(tmux) && ok(claude),
+    ...(localModels ? { localModels } : {}),
     checkedAt: new Date().toISOString(),
   };
 }
