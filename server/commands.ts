@@ -15,6 +15,7 @@ import type { SbxMcp } from "./sbxMcp";
 import type { Sessions } from "./sessions";
 import { newAgent } from "./store";
 import { mergeByNotice } from "./githubSync";
+import { prRef } from "./github";
 
 /** A stack from the browser, checked against the catalog. Null when nothing is chosen. */
 function cleanStack(raw: unknown): StackConfig | null {
@@ -291,7 +292,7 @@ export function makeCommands(hub: Hub, sessions: Sessions, planner: Planner, inb
       // The lead was told the old rule; tell it the new one now, so no restart is needed.
       const lead = hub.snap.config.team.find((a) => a.isLead);
       if (lead && wf.merge.by !== mergeBy) {
-        const waiting = hub.snap.pullRequests.filter((pr) => pr.review === "passed" && !pr.merged && !pr.closed).map((pr) => pr.number);
+        const waiting = hub.snap.pullRequests.filter((pr) => pr.review === "passed" && !pr.merged && !pr.closed).map((pr) => prRef(pr, hub.repo.github));
         planner.notify(lead.id, mergeByNotice(wf.merge.by, waiting));
       }
     },

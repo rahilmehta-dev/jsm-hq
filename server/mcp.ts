@@ -155,7 +155,7 @@ function buildServer(hub: Hub, planner: Planner, me: string): McpServer {
       if (!t) return ok("You have no task right now. Wait for the lead, or ask with send_message.");
       if (t.status === "todo") planner.setStatus(me, "in-progress");
       const blockedBy = t.needs.filter((n) => planner.task(n)?.status !== "done");
-      return ok({ ...taskView(t.id), waitingOn: blockedBy, rules: "Work only on this task, on its own branch. Edit only the listed files. Title the PR `[" + t.id + "] " + t.title + "`. When the PR is open, call set_my_status with in-review and the PR number." });
+      return ok({ ...taskView(t.id), waitingOn: blockedBy, rules: "Work only on this task, on its own branch. Edit only the listed files. Title the PR `[" + t.id + "] " + t.title + "`. When the PR is open, call set_my_status with in-review and the PR number (plus prRepo, as owner/name, if the PR is in a different repo than the project's main one)." });
     }),
   );
 
@@ -167,10 +167,15 @@ function buildServer(hub: Hub, planner: Planner, me: string): McpServer {
         status: z.enum(["in-progress", "blocked", "in-review", "done"]),
         note: z.string().optional().describe("Why you are blocked, or a short summary"),
         prNumber: z.number().int().optional(),
+        prRepo: z
+          .string()
+          .regex(/^[\w.-]+\/[\w.-]+$/)
+          .optional()
+          .describe("owner/name of the PR's repo, if it isn't this project's main repo"),
       },
     },
-    guard(({ status, note, prNumber }: { status: "in-progress" | "blocked" | "in-review" | "done"; note?: string; prNumber?: number }) => {
-      const t = planner.setStatus(me, status, note, prNumber);
+    guard(({ status, note, prNumber, prRepo }: { status: "in-progress" | "blocked" | "in-review" | "done"; note?: string; prNumber?: number; prRepo?: string }) => {
+      const t = planner.setStatus(me, status, note, prNumber, prRepo);
       return ok(`${t.id} is now ${t.status}.`);
     }),
   );
