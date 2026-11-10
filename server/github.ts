@@ -175,10 +175,21 @@ export function branchAgent(branch: string): string | null {
   return m ? m[1].toLowerCase() : null;
 }
 
-export function toPullRequest(pr: GhPr, tool: ReviewTool, reviewEnabled: boolean, taskId: string, authorId: string): PullRequest {
+/** How to name a PR to people and agents: `#N` in the main repo, `owner/name#N` in another. */
+export function prRef(pr: { repo?: string; number: number }, mainRepo: string | null): string {
+  return pr.repo && pr.repo !== mainRepo ? `${pr.repo}#${pr.number}` : `#${pr.number}`;
+}
+
+/** ` --repo owner/name` for a `gh pr` command on a PR outside the main repo; empty otherwise. */
+export function repoFlag(pr: { repo?: string }, mainRepo: string | null): string {
+  return pr.repo && pr.repo !== mainRepo ? ` --repo ${pr.repo}` : "";
+}
+
+export function toPullRequest(pr: GhPr, repo: string, tool: ReviewTool, reviewEnabled: boolean, taskId: string, authorId: string): PullRequest {
   const merged = pr.state === "MERGED";
   const r = reviewEnabled ? reviewOf(pr, tool) : { review: "passed" as ReviewState, openComments: 0, note: null };
   return {
+    repo,
     number: pr.number,
     title: pr.title,
     taskId,
