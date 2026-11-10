@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { DEFAULT_OFFICE_NAME, OFFICE_NAME_MAX } from "../../data/names";
 import { FONT_STYLES, savedFont, setFont, type FontStyle } from "../../theme/fonts";
+import { BUDGET_PROVIDERS, USAGE_PROVIDER_LABEL, type BudgetProvider } from "../../data/types";
 import { officeActions, useOffice } from "../../store/office";
 import { Field, SectionTitle } from "../kit";
 import { CommitInput, Toggle } from "./controls";
@@ -26,6 +27,51 @@ function FontPicker() {
             </option>
           ))}
         </select>
+      </Field>
+    </section>
+  );
+}
+
+const fmt = (n: number) => n.toLocaleString("en-US");
+
+/** The user's own daily token budget per cloud provider. Without one, HQ shows tokens but no percentage. */
+function UsageBudgets() {
+  const budgets = useOffice((s) => s.snap?.config.project.dailyTokenBudgets);
+  const providers = useOffice((s) => s.snap?.usage?.providers);
+  const local = providers?.find((p) => p.provider === "local");
+  const commit = (p: BudgetProvider, v: string) => {
+    const n = Number(v.replace(/[,_\s]/g, ""));
+    // Empty clears the budget (sent as 0); anything that isn't a whole, positive number is ignored.
+    if (!v.trim()) officeActions.updateProject({ dailyTokenBudgets: { [p]: 0 } });
+    else if (Number.isFinite(n) && n > 0) officeActions.updateProject({ dailyTokenBudgets: { [p]: Math.round(n) } });
+  };
+  return (
+    <section className="grid grid-cols-2 gap-3 border border-ink bg-white p-3">
+      <div className="col-span-2">
+        <SectionTitle>Daily token budgets</SectionTitle>
+        <p className="m-0 text-[13px] text-ink-2">
+          HQ counts the tokens agents use each day (local midnight to midnight) from their own session files on this machine, and never sends them anywhere. Providers don&apos;t publish a daily token limit, so set your own to see how much is left. Without a budget, HQ shows tokens only, no percentage. Input, output and cache writes count; cache reads are shown separately.
+        </p>
+      </div>
+      {BUDGET_PROVIDERS.map((p) => {
+        const used = providers?.find((r) => r.provider === p);
+        return (
+          <Field
+            key={p}
+            label={USAGE_PROVIDER_LABEL[p]}
+            hint={used ? `Used today: ${fmt(used.tokens)} tokens${used.unmeasured ? ` (${used.unmeasured} agent${used.unmeasured === 1 ? "" : "s"} not measurable)` : ""}${used.remainingPercent !== null ? ` · ${used.remainingPercent}% left` : ""}` : "No agents on this provider."}
+          >
+            <CommitInput
+              className="field font-term text-[17px]"
+              value={budgets?.[p] ? fmt(budgets[p]) : ""}
+              placeholder="No budget"
+              onCommit={(v) => commit(p, v)}
+            />
+          </Field>
+        );
+      })}
+      <Field label={USAGE_PROVIDER_LABEL.local} hint="Ollama and local servers have no limit: HQ shows their tokens without a battery.">
+        <span className="field font-term text-[17px] text-muted">{local ? `${fmt(local.tokens)} tokens today` : "Unlimited"}</span>
       </Field>
     </section>
   );
@@ -70,6 +116,7 @@ export function ProjectSettings() {
           />
         </Field>
       </section>
+      <UsageBudgets />
       <section>
         <SectionTitle>Plan</SectionTitle>
         <Toggle checked={!!project.exportPlan} onChange={(v) => officeActions.updateProject({ exportPlan: v })} label="Export plan to docs/plan.md" />

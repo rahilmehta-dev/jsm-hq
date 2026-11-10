@@ -25,6 +25,7 @@ import { Sessions } from "./sessions";
 import { ollamaBaseUrl } from "./ollama";
 import { runSetupChecks } from "./setup";
 import { loadConfig, loadPlan } from "./store";
+import { UsageCollector } from "./usage";
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -100,6 +101,13 @@ async function main() {
   sbx.startApprovalPolling();
   const github = new GitHubSync(hub, planner, repo.github);
   github.start();
+  // Tokens used today, read from the agents' own session files (never sent anywhere).
+  const usage = new UsageCollector(hub);
+  hub.subscribe((e) => {
+    if (e.type === "activity" && e.event.type === "agent.answered" && e.event.agentId) usage.turnFinished(e.event.agentId);
+    else if (e.type === "config.updated") usage.publish(); // budgets or the team changed
+  });
+  usage.start();
 
   const url = `${uiOrigin}/?token=${uiToken}`;
   log.info(`\n\n  My HQ is running → ${url}\n`);
@@ -115,6 +123,7 @@ async function main() {
     sessions.shutdown();
     sbx.stopApprovalPolling();
     github.stop();
+    usage.stop();
     process.exit(0);
   };
   process.on("SIGINT", quit);

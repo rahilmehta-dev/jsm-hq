@@ -2,7 +2,7 @@
 // OfficeEvent to all connected browsers, and config/plan changes are saved.
 
 import type { OfficeEvent } from "../src/data/source";
-import type { ActivityType, AgentConfig, AgentStatus, HqConfig, OfficeSnapshot, SessionInfo, SetupState } from "../src/data/types";
+import type { ActivityType, AgentConfig, AgentStatus, HqConfig, OfficeSnapshot, SessionInfo, SetupState, UsageSnapshot } from "../src/data/types";
 import { writePlanExport } from "./planExport";
 import { saveConfig, savePlan, type PlanFile } from "./store";
 import type { RepoInfo } from "./repo";
@@ -113,6 +113,11 @@ export class Hub {
   setSetup(setup: SetupState) {
     this.snap.setup = setup;
     this.emit({ type: "setup.updated", setup });
+  }
+
+  setUsage(usage: UsageSnapshot) {
+    this.snap.usage = usage;
+    this.emit({ type: "usage.updated", usage: structuredClone(usage) });
   }
 
   activity(type: ActivityType, agentId: string | null, text: string) {

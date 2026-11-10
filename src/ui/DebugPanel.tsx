@@ -50,6 +50,7 @@ function summary(e: OfficeEvent): string {
     case "access.updated": return `${e.request.agentId} ${e.request.domain} ${e.request.status}`;
     case "room.worker": return `${e.workerId} ${e.status.state}${e.status.note ? `: ${e.status.note}` : ""}`;
     case "room.handoff": return `${e.handoff.from ?? "in"} → ${e.handoff.to ?? "out"}`;
+    case "usage.updated": return `${e.usage.total.tokens} tokens today (${e.usage.total.unmeasured} unmeasured)`;
   }
 }
 

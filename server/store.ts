@@ -7,6 +7,7 @@ import { supportsLocalServer, supportsOllama, type AgentConfig, type Board, type
 import { LEAD_NAME, WORKER_NAMES } from "../src/data/names";
 import { parseLocalServerUrl, parseOllamaUrl } from "./ollama";
 import { slugify } from "./paths";
+import { patchBudgets } from "./usage";
 import type { RepoInfo } from "./repo";
 
 export interface PlanFile {
@@ -92,6 +93,10 @@ export function loadConfig(repo: RepoInfo, port: number): { config: HqConfig; is
     found.project.path = repo.root;
     if (!parseOllamaUrl(found.project.ollamaUrl)) delete found.project.ollamaUrl;
     if (!parseLocalServerUrl(found.project.localServerUrl)) delete found.project.localServerUrl;
+    // Daily budgets: whole token counts per known provider; anything else from a hand edit is dropped.
+    const budgets = patchBudgets(undefined, found.project.dailyTokenBudgets);
+    if (budgets) found.project.dailyTokenBudgets = budgets;
+    else delete found.project.dailyTokenBudgets;
     // The project room is optional; a malformed one from a hand-edited file is dropped.
     if (found.projectRoom && !Array.isArray(found.projectRoom.workers)) delete found.projectRoom;
     return { config: found, isNew: false };
