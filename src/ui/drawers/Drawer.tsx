@@ -10,7 +10,7 @@ import { TerminalDrawer } from "./TerminalDrawer";
 
 export function DrawerHeader({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-center gap-2.5 border-b-[3px] border-ink px-3 py-2">
+    <div className="flex items-center gap-2.5 border-b border-line px-3 py-2">
       <div className="flex min-w-0 flex-1 items-center gap-2.5">{children}</div>
       <MaximizeButton />
       <button className="btn px-2.5" aria-label="Close" onClick={() => ui.closeDrawer()}>
@@ -25,14 +25,14 @@ function MaximizeButton() {
   const label = max ? "Restore size" : "Maximize";
   return (
     <button className="btn grid h-[30px] w-[34px] place-items-center px-0" aria-label={label} title={label} aria-pressed={max} onClick={() => ui.toggleDrawerMaximized()}>
-      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
+      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5">
         {max ? (
           <>
-            <rect x="1" y="4" width="9" height="9" />
+            <rect x="1" y="4" width="9" height="9" rx="1.5" />
             <path d="M4 4V1h9v9h-3" />
           </>
         ) : (
-          <rect x="1" y="1" width="12" height="12" />
+          <rect x="1" y="1" width="12" height="12" rx="2" />
         )}
       </svg>
     </button>
@@ -74,7 +74,7 @@ function ResizeHandle() {
       onPointerCancel={up}
       onDoubleClick={() => ui.setDrawerWidth(DRAWER_DEFAULT)}
     >
-      <div className="my-auto h-12 w-[4px] bg-ink opacity-0 transition-opacity group-hover:opacity-60" />
+      <div className="my-auto h-12 w-[4px] rounded-full bg-ink opacity-0 transition-opacity group-hover:opacity-60" />
     </div>
   );
 }
@@ -90,7 +90,7 @@ export function DrawerHost() {
   if (drawer?.kind === "boards")
     return (
       <div
-        className="fixed inset-0 z-30 grid place-items-center bg-[rgba(36,26,46,0.55)] p-4"
+        className="fixed inset-0 z-30 grid place-items-center bg-[rgba(31,36,33,0.35)] backdrop-blur-[2px] p-4"
         role="dialog"
         aria-modal="true"
         aria-label="Boards"

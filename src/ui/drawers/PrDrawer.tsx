@@ -15,7 +15,7 @@ export function PrDrawer() {
   const Row = ({ pr }: { pr: PullRequest }) => {
     const author = snap.config.team.find((a) => a.id === pr.authorId);
     return (
-      <li className="grid grid-cols-[64px_1fr_auto] items-center gap-2.5 border-[3px] border-ink bg-white px-2.5 py-1.5 shadow-[0_3px_0_rgba(36,26,46,0.35)]">
+      <li className="grid grid-cols-[64px_1fr_auto] items-center gap-2.5 rounded-xl border border-line bg-white px-2.5 py-1.5 shadow-sm">
         <span className={`font-term leading-none ${pr.repo && prLabel(pr, snap) !== `#${pr.number}` ? "text-[16px] break-all" : "text-[24px]"}`}>{prLabel(pr, snap)}</span>
         <div className="min-w-0">
           <div className="truncate text-[15px] font-semibold">{pr.title}</div>
