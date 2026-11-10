@@ -80,3 +80,9 @@ Errors come back as `{ "error": "…" }` with a 4xx status (`401` wrong token, `
 - **The room is saved** in `.jsmhq/config.json` (its workers), so it comes back when My HQ restarts. Statuses are live only and aren't saved.
 - **Remove it** in Settings → Team → Project room, or `PUT /room` again with different workers.
 - **Not an agent.** Project-room workers have no terminal, sandbox or tasks. If you want a coding agent to work on the project, add it to the team as usual.
+
+## Letting the lead set it up
+
+You don't have to open Settings. Ask the lead (for example Michelle) to "make a project room for the referral project with a fetcher, a writer and a sender". The lead has a `setup_project_room` tool that creates the room and returns the endpoint, the env var names and the client file. The lead never writes code, so she creates a task for a builder agent, who adds the client and the calls to the project. The room token is never given to the agents: you set `HQ_ROOM_TOKEN` in the project's environment yourself (Settings, Team, Project room, copy).
+
+Only the lead can call the tool; workers get an error. Calling it again replaces the room.
