@@ -32,7 +32,7 @@ export function BoardsDrawer({ initialBoardId }: { initialBoardId?: string }) {
         <b className="text-[18px]">Boards</b>
         <span className="text-[14px] text-muted">{boards.length} in {snap.config.project.name}</span>
       </DrawerHeader>
-      <div className="flex flex-wrap gap-1.5 border-b-[3px] border-ink px-3 py-2">
+      <div className="flex flex-wrap gap-1.5 border-b border-line px-3 py-2">
         {boards.map((b) => (
           <button key={b.id} className="btn px-2 text-[13px]" aria-pressed={b.id === boardId} onClick={() => setBoardId(b.id)}>
             {b.status === "active" && <span className="mr-1 text-blue">●</span>}
@@ -41,7 +41,7 @@ export function BoardsDrawer({ initialBoardId }: { initialBoardId?: string }) {
         ))}
       </div>
       {board && (
-        <div className="flex items-center gap-2 border-b-[3px] border-ink bg-cream-2 px-3 py-1.5 text-[14px]">
+        <div className="flex items-center gap-2 border-b border-line bg-cream-2 px-3 py-1.5 text-[14px]">
           <span className="text-muted">Status</span>
           <select
             className="field w-[120px] py-0 text-[14px]"
@@ -89,7 +89,7 @@ function TaskCard({ task }: { task: Task }) {
   const workers = snap?.config.team.filter((a) => !a.isLead) ?? [];
   const blockedBy = task.needs.filter((n) => snap?.tasks.find((t) => t.id === n)?.status !== "done");
   return (
-    <div className={`border-2 border-ink px-2 py-1.5 shadow-[0_3px_0_rgba(36,26,46,0.35)] ${task.status === "done" ? "bg-[#e8e1d2] text-muted" : "bg-white"}`}>
+    <div className={`rounded-lg border border-line px-2 py-1.5 shadow-sm ${task.status === "done" ? "bg-[#e8e1d2] text-muted" : "bg-white"}`}>
       <div className="font-term text-[16px] leading-none text-muted">
         {task.id}
         {task.prNumber && <span className="ml-1.5">{snap ? prLabel({ repo: task.prRepo, number: task.prNumber }, snap) : `#${task.prNumber}`}</span>}

@@ -7,8 +7,8 @@ const SPEEDS: SimSpeed[] = [1, 2, 4];
 function Logo() {
   return (
     <svg className="h-[30px] w-[30px] shrink-0" viewBox="0 0 10 10" shapeRendering="crispEdges" aria-hidden>
-      <rect x="1" y="1" width="8" height="8" fill="#241a2e" />
-      <rect x="2" y="2" width="6" height="6" fill="#29adff" />
+      <rect x="1" y="1" width="8" height="8" fill="#1f2421" />
+      <rect x="2" y="2" width="6" height="6" fill="#3f8f5a" />
       <rect x="3" y="3" width="1" height="2" fill="#fff6e9" />
       <rect x="6" y="3" width="1" height="2" fill="#fff6e9" />
       <rect x="3" y="6" width="4" height="1" fill="#1d2b53" />
@@ -38,26 +38,26 @@ export function TopBar() {
   const openPrs = snap.pullRequests.filter((p) => !p.merged && !p.closed).length;
 
   return (
-    <header className="panel fixed left-4 right-4 top-[10px] z-10 flex h-[50px] items-center gap-4 px-3">
+    <header className="panel fixed left-4 right-4 top-[10px] z-10 flex h-[52px] items-center gap-3 px-4">
       <div className="flex min-w-0 items-center gap-2.5">
         <Logo />
-        <b className="whitespace-nowrap text-[22px] font-bold tracking-[0.02em]">My HQ</b>
+        <b className="whitespace-nowrap text-[17px] font-semibold tracking-tight">My HQ</b>
         {!live && (
-          <span className="chip shrink-0 text-[12px]" style={{ ["--c" as string]: "#ffec27" }} title="Running on mock data. Start the real HQ with `pnpm dev:hq`.">
+          <span className="chip shrink-0 text-[12px]" style={{ ["--c" as string]: "#f6e9b8" }} title="Running on mock data. Start the real HQ with `pnpm dev:hq`.">
             Demo data
           </span>
         )}
-        <span className="truncate text-[16px] text-muted">
+        <span className="truncate text-[13px] text-muted">
           — <em className="font-semibold not-italic text-ink">{snap.config.project.name}</em>{" "}
-          <span className="font-term text-[17px]">{snap.config.project.repo}</span>
+          <span className="font-term text-[12px]">{snap.config.project.repo}</span>
         </span>
       </div>
       <div className="flex-1" />
 
-      <label className="flex items-center gap-2 text-[14px]">
+      <label className="flex items-center gap-2 text-[13px]">
         <span className="text-muted">Plan wall</span>
         <select
-          className="field w-[190px] py-0 text-[14px]"
+          className="field w-[190px] py-0 text-[13px]"
           value={planBoardId ?? ""}
           onChange={(e) => ui.showBoardOnWall(e.target.value || null)}
           aria-label="Board shown on the plan wall"
@@ -74,7 +74,7 @@ export function TopBar() {
       {hasDev && (
         <div className="flex items-center gap-1.5" role="group" aria-label="Simulation speed">
           {SPEEDS.map((s) => (
-            <button key={s} className="btn px-2 text-[14px]" aria-pressed={speed === s} onClick={() => officeActions.setSpeed(s)}>
+            <button key={s} className="btn px-2 text-[13px]" aria-pressed={speed === s} onClick={() => officeActions.setSpeed(s)}>
               {s}x
             </button>
           ))}
@@ -91,48 +91,48 @@ export function TopBar() {
       </div>
 
       <div
-        className="flex items-center gap-2 whitespace-nowrap border-[3px] border-ink bg-navy px-2.5 py-0.5 text-[15px] text-cream"
+        className="flex items-center gap-2 whitespace-nowrap rounded-full border border-line bg-cream-2 px-3 py-1 text-[13px] text-ink"
         title="Each agent runs in its own isolated Docker Sandbox (microVM)"
       >
         <span>
           Sandbox · <b>{sandboxes}</b> running{local ? ` · ${local} local` : ""}
         </span>
-        <i className="led" style={runningIds.size ? undefined : { background: "#83769c", animation: "none" }} />
+        <i className="led" style={runningIds.size ? undefined : { background: "#b9b5ab", boxShadow: "none", animation: "none" }} />
       </div>
 
       {live && stopped.length > 0 && (
-        <button className="btn text-[14px]" onClick={() => stopped.forEach((a) => officeActions.startAgent(a.agentId))}>
+        <button className="btn text-[13px]" onClick={() => stopped.forEach((a) => officeActions.startAgent(a.agentId))}>
           Start {stopped.length === snap.agents.length ? "team" : `${stopped.length} stopped`}
         </button>
       )}
       {live && (
-        <button className="btn text-[14px]" onClick={() => ui.openSetup()} title="Setup checklist">
+        <button className="btn text-[13px]" onClick={() => ui.openSetup()} title="Setup checklist">
           Setup{setupIssues ? ` · ${setupIssues}` : " ✓"}
         </button>
       )}
       <div className="flex gap-1.5">
         <button
-          className="btn text-[14px]"
-          style={attention ? { background: "#ffec27" } : undefined}
+          className="btn text-[13px]"
+          style={attention ? { background: "#f6e9b8" } : undefined}
           onClick={() => ui.openActions()}
           title="Everything waiting on you"
         >
           Action items{attention ? ` · ${attention}` : ""}
         </button>
-        <button className="btn text-[14px]" onClick={() => ui.openBoards(planBoardId ?? undefined)}>
+        <button className="btn text-[13px]" onClick={() => ui.openBoards(planBoardId ?? undefined)}>
           Boards
         </button>
-        <button className="btn text-[14px]" onClick={() => ui.openPrs()}>
+        <button className="btn text-[13px]" onClick={() => ui.openPrs()}>
           PRs{openPrs ? ` · ${openPrs}` : ""}
         </button>
-        <button className="btn text-[14px]" onClick={() => ui.openTerminal()} title="Your own shell on this machine: the repo, an agent's folder or any folder">
+        <button className="btn text-[13px]" onClick={() => ui.openTerminal()} title="Your own shell on this machine: the repo, an agent's folder or any folder">
           Terminal
         </button>
       </div>
-      <button className="btn text-[14px]" onClick={() => ui.openSettings("team")}>
+      <button className="btn text-[13px]" onClick={() => ui.openSettings("team")}>
         Settings
       </button>
-      <button className="btn text-[14px]" aria-pressed={debugOpen} onClick={() => ui.toggleDebug()} title="Debug panel (D)">
+      <button className="btn text-[13px]" aria-pressed={debugOpen} onClick={() => ui.toggleDebug()} title="Debug panel (D)">
         Debug
       </button>
     </header>

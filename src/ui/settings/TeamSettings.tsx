@@ -50,7 +50,7 @@ function AgentRow({ agent, expanded, onToggle, onRemove }: { agent: AgentConfig;
   const ollamaUrl = useOffice((s) => s.snap?.config.project.ollamaUrl);
   const onOllama = agent.provider === "ollama" && supportsOllama(agent.cli);
   return (
-    <div className="border-[3px] border-ink bg-white">
+    <div className="rounded-xl border border-line bg-white">
       <div className="grid grid-cols-[40px_1fr_1fr_150px_130px_auto] items-end gap-2.5 p-2.5">
         <Portrait color={agent.color} lead={agent.isLead} />
         <Field label="Name">
@@ -92,14 +92,14 @@ function AgentRow({ agent, expanded, onToggle, onRemove }: { agent: AgentConfig;
         </div>
       )}
       {expanded && (
-        <div className="grid grid-cols-2 gap-3 border-t-[3px] border-ink bg-cream p-3">
+        <div className="grid grid-cols-2 gap-3 border-t border-line bg-cream p-3">
           <Field label="Colour">
             <div className="flex flex-wrap gap-1.5">
               {agentPalette.map((c) => (
                 <button
                   key={c}
-                  className="h-6 w-6 border-[3px] border-ink"
-                  style={{ background: c, outline: c === agent.color ? "3px solid #241a2e" : undefined, outlineOffset: 1 }}
+                  className="h-6 w-6 rounded-full border border-line"
+                  style={{ background: c, outline: c === agent.color ? "2px solid #1f2421" : undefined, outlineOffset: 1 }}
                   aria-label={`Colour ${c}`}
                   onClick={() => set({ color: c })}
                 />
@@ -178,7 +178,7 @@ function ProjectRoomSettings() {
     setName("");
   };
   return (
-    <section className="border-[3px] border-dashed border-ink p-3">
+    <section className="rounded-xl border border-dashed border-line p-3">
       <SectionTitle>Project room</SectionTitle>
       <p className="mb-3 text-[13px] text-muted">
         A separate room in the office for your project's own workers: a script that fetches emails, a local model that writes them, a bot that sends them. They aren't coding agents. A project reports what they do through a local API (see Connect a project below); until then they play a demo animation.
@@ -191,8 +191,8 @@ function ProjectRoomSettings() {
       {workers.length > 0 && (
         <div className="mb-3 flex flex-col gap-2">
           {workers.map((w, i) => (
-            <div key={`${w.id}-${i}`} className="grid grid-cols-[28px_1fr_220px_auto] items-center gap-2.5 border-[3px] border-ink bg-white p-2">
-              <span className="h-5 w-5 border-[3px] border-ink" style={{ background: w.color }} aria-hidden />
+            <div key={`${w.id}-${i}`} className="grid grid-cols-[28px_1fr_220px_auto] items-center gap-2.5 rounded-xl border border-line bg-white p-2">
+              <span className="h-5 w-5 rounded-full border border-line" style={{ background: w.color }} aria-hidden />
               <CommitInput className="field" value={w.name} onCommit={(v) => v.trim() && change(i, { name: v.trim() })} />
               <select className="field" value={w.kind} aria-label="What it does" onChange={(e) => change(i, { kind: e.target.value as ProjectWorkerKind })}>
                 {(Object.keys(WORKER_KIND_LABEL) as ProjectWorkerKind[]).map((k) => (
@@ -237,14 +237,14 @@ function ProjectRoomSettings() {
           Play the demo animation until a project connects
         </label>
       )}
-      <div className="mt-3 border-[3px] border-ink bg-cream p-3">
+      <div className="mt-3 rounded-xl border border-line bg-cream p-3">
         <div className="mb-1 text-[13px] font-bold">Connect a project</div>
         <p className="mb-2 text-[12px] text-muted">
           Any project can create this room and show what its workers do, through a small local HTTP API. Set these two variables in the project, then use the Python or Node helper in <code>sdk/</code> (see <code>docs/project-rooms.md</code>).
         </p>
         {api ? (
           <>
-            <pre className="mb-2 overflow-x-auto whitespace-pre-wrap break-all border-2 border-ink bg-white p-2 font-term text-[15px]">{`export HQ_ROOM_URL=${api.url}\nexport HQ_ROOM_TOKEN=${shown ? api.token : "•".repeat(16)}`}</pre>
+            <pre className="mb-2 overflow-x-auto whitespace-pre-wrap break-all rounded-lg border border-line bg-white p-2 font-term text-[15px]">{`export HQ_ROOM_URL=${api.url}\nexport HQ_ROOM_TOKEN=${shown ? api.token : "•".repeat(16)}`}</pre>
             <div className="flex gap-2">
               <button className="btn px-2 text-[13px]" onClick={() => setShown(!shown)}>
                 {shown ? "Hide token" : "Show token"}
@@ -282,7 +282,7 @@ function AddAgent() {
     setName("");
   };
   return (
-    <section className="border-[3px] border-dashed border-ink p-3">
+    <section className="rounded-xl border border-dashed border-line p-3">
       <SectionTitle>Add an agent</SectionTitle>
       <form
         className="grid grid-cols-[1fr_1fr_150px_130px_auto] items-end gap-2.5"

@@ -13,11 +13,14 @@
 @import "@xterm/xterm/css/xterm.css";
 
 @theme {
-  --color-ink: #241a2e;
-  --color-cream: #fff6e9;
-  --color-cream-2: #f0dfc2;
-  --color-cream-3: #e2cba6;
-  --color-muted: #7d6b73;
+  /* Campus HUD palette: warm whites and grays, soft green accent. The office canvas uses src/theme/tokens.ts. */
+  --color-ink: #1f2421;
+  --color-cream: #fbfaf8;
+  --color-cream-2: #f1efea;
+  --color-cream-3: #e3e0d9;
+  --color-line: #dedbd3;
+  --color-muted: #6b716c;
+  --color-accent: #3f8f5a;
   --color-navy: #1d2b53;
   --color-navy-2: #16213f;
   --color-blue: #29adff;
@@ -25,15 +28,16 @@
   --color-orange: #ffa300;
   --color-green: #00e436;
   --color-lav: #83769c;
-  --color-yellow: #ffec27;
+  --color-yellow: #f6d86b;
   --color-pink: #ff77a8;
   --color-grass: #4a8f3d;
-  --font-ui: "Pixelify Sans", "Trebuchet MS", system-ui, sans-serif;
-  --font-term: "VT323", ui-monospace, Menlo, Consolas, monospace;
+  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-term: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
 }
 
 /* Font styles (Settings → Project → Font). The office canvas and terminal keep their pixel fonts. */
-html[data-font="clean"] {
+html[data-font="clean"],
+html[data-font="pixel"] {
   --font-ui: "Inter", system-ui, sans-serif;
   --font-term: "JetBrains Mono", ui-monospace, Menlo, monospace;
 }
@@ -69,67 +73,66 @@ html[data-font] .font-term {
 }
 
 @layer components {
-  /* Chunky game panel: ink outline, light bevel, hard drop shadow (no blur) */
+  /* Calm campus surfaces: warm white, hairline border, soft shadow, rounded corners */
   .panel {
     background: var(--color-cream);
-    border: 3px solid var(--color-ink);
+    border: 1px solid var(--color-line);
+    border-radius: 16px;
     box-shadow:
-      inset -3px -3px 0 var(--color-cream-2),
-      inset 3px 3px 0 #fff,
-      0 4px 0 rgba(36, 26, 46, 0.45);
+      0 1px 2px rgba(31, 36, 33, 0.06),
+      0 12px 32px rgba(31, 36, 33, 0.12);
+    overflow: hidden;
   }
   .panel-dark {
-    background: rgba(29, 43, 83, 0.94);
+    background: rgba(31, 36, 33, 0.92);
     color: var(--color-cream);
-    border: 3px solid var(--color-ink);
-    box-shadow:
-      inset -3px -3px 0 rgba(0, 0, 0, 0.25),
-      inset 3px 3px 0 rgba(255, 255, 255, 0.08),
-      0 4px 0 rgba(36, 26, 46, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(31, 36, 33, 0.25);
   }
   .btn {
     cursor: pointer;
-    border: 3px solid var(--color-ink);
-    background: var(--color-cream);
-    padding: 1px 10px;
-    font-weight: 600;
-    box-shadow:
-      inset -2px -2px 0 var(--color-cream-3),
-      0 3px 0 var(--color-ink);
-    transition: transform 0.06s;
+    border: 1px solid var(--color-line);
+    border-radius: 10px;
+    background: #fff;
+    padding: 3px 12px;
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(31, 36, 33, 0.06);
+    transition:
+      background-color 0.15s,
+      border-color 0.15s;
     white-space: nowrap;
   }
   .btn:hover {
-    background: #fff;
+    background: var(--color-cream-2);
+    border-color: #cfcbc1;
   }
-  .btn:active,
-  .btn[aria-pressed="true"] {
-    transform: translateY(3px);
-    box-shadow:
-      inset -2px -2px 0 var(--color-cream-3),
-      0 0 0 var(--color-ink);
+  .btn:active {
+    background: var(--color-cream-3);
   }
   .btn[aria-pressed="true"] {
-    background: var(--color-yellow);
+    background: #e4f1e8;
+    border-color: var(--color-accent);
+    color: #24663c;
   }
   .btn:disabled {
     cursor: not-allowed;
     opacity: 0.5;
-    transform: none;
   }
   .btn:focus-visible,
   .field:focus-visible {
-    outline: 3px solid var(--color-blue);
-    outline-offset: 1px;
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
   }
   .chip {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 0 6px 1px;
-    border: 2px solid var(--color-ink);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 1px 8px;
+    border: 1px solid rgba(31, 36, 33, 0.12);
+    border-radius: 999px;
     background: var(--c, var(--color-cream-2));
     color: var(--color-ink);
     white-space: nowrap;
@@ -138,15 +141,20 @@ html[data-font] .font-term {
     content: "";
     width: 6px;
     height: 6px;
+    border-radius: 50%;
     background: var(--color-ink);
   }
   .field {
-    border: 3px solid var(--color-ink);
+    border: 1px solid var(--color-line);
+    border-radius: 10px;
     background: #fff;
-    padding: 2px 8px;
-    font-size: 15px;
+    padding: 2px 10px;
+    font-size: 14px;
     width: 100%;
     min-width: 0;
+  }
+  .field:focus {
+    border-color: var(--color-accent);
   }
   /* Inputs and dropdowns share one height so labels in a row line up. */
   input.field,
@@ -155,9 +163,10 @@ html[data-font] .font-term {
   }
   .kbd {
     font-family: var(--font-term);
-    font-size: 16px;
-    border: 2px solid var(--color-ink);
-    padding: 0 4px;
+    font-size: 12px;
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    padding: 0 5px;
     background: #fff;
   }
 }
@@ -168,14 +177,15 @@ html[data-font] .font-term {
   }
 }
 .blink {
-  animation: blink 0.5s steps(1) infinite;
+  animation: blink 1s ease-in-out infinite;
 }
 .led {
   width: 8px;
   height: 8px;
-  background: var(--color-green);
-  box-shadow: 0 0 0 2px var(--color-ink);
-  animation: blink 1s steps(1) infinite;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(63, 143, 90, 0.2);
+  animation: blink 2s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -187,7 +197,7 @@ html[data-font] .font-term {
 
 .scroll-thin {
   scrollbar-width: thin;
-  scrollbar-color: #3b4a7a transparent;
+  scrollbar-color: #c4c0b6 transparent;
 }
 
 .xterm {
