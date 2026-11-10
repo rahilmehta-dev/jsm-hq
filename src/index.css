@@ -412,3 +412,27 @@ html[data-font] .font-term {
   scrollbar-width: thin;
   scrollbar-color: #3b4a7a transparent;
 }
+
+/* Campus labels: screen-space plates, a fixed 12px at any zoom. Solid white, 1px black outline, black text (21:1). */
+.map-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.map-plate {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 2px 6px 2px 8px;
+  background: #fff;
+  color: #000;
+  border: 1px solid #000;
+  box-shadow: inset 2px 0 0 var(--a, transparent);
+  font-family: var(--font-ui);
+  font-size: var(--text-label, 12px);
+  font-weight: 700;
+  line-height: 16px;
+  white-space: nowrap;
+  will-change: transform;
+}

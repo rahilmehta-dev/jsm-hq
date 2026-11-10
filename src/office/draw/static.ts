@@ -4,7 +4,7 @@ import { officeSign } from "../../data/names";
 import type { HqConfig } from "../../data/types";
 import { mulberry32 } from "../../lib/random";
 import { soften } from "../../theme/tokens";
-import { PLATE, text, textW } from "../engine/font";
+import { labelReg, text, textW } from "../engine/font";
 import { C } from "../engine/palette";
 import { box, CanvasPen, disc, ellipse, line, makeCanvas } from "../engine/pen";
 import type { OfficeLayout } from "../layout/layout";
@@ -12,6 +12,8 @@ import { beanbag, easel, partitions, pavilionShell, plant, plate, rackBody, tree
 
 export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElement {
   const canvas = makeCanvas(l.worldW, l.worldH);
+  labelReg.statics = [];
+  labelReg.origin = { x: 0, y: 0 };
   const g = canvas.getContext("2d") as CanvasRenderingContext2D;
   const p = new CanvasPen(g);
   const R = mulberry32(42);
@@ -83,6 +85,7 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
 
   g.save();
   g.translate(l.ox, l.oy);
+  labelReg.origin = { x: l.ox, y: l.oy };
   const mainPx = (l.mainW + 1) * 16;
   const L = l.lounge.x0 * 16;
 
@@ -118,8 +121,7 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
     const accent = soften(s.color, 0.35);
     p.rect(s.x0 * 16 + 2, 14 * 16 - 20, w, 3, accent);
     const cx = s.x0 * 16 + 2 + w / 2;
-    box(p, Math.round(cx - textW(s.label) / 2) - 5, 14 * 16 - 33, textW(s.label) + 10, 12, PLATE.fill, PLATE.line);
-    text(p, s.label, Math.round(cx - textW(s.label) / 2), 14 * 16 - 30, PLATE.ink);
+    labelReg.addStatic(s.label, cx, 14 * 16 - 33, 3, accent);
   }
 
   // lead carpet
@@ -270,7 +272,7 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
     box(p, 212, 86, 6, 6, C.white);
     p.rect(213, 87, 4, 2, "#7a4a2a");
     const lead = config.team.find((a) => a.id === l.lead.agentId);
-    if (lead) plate(p, lead.name.toUpperCase().slice(0, 8), 249, 99);
+    if (lead) plate(p, lead.name.toUpperCase().slice(0, 8), 249, 99, 1);
   }
   // stand-up corner
   plant(p, 24, 76);
@@ -369,6 +371,7 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
     text(p, "MAIN", m.x + 4, m.y + 3, C.white);
   }
   g.restore();
+  labelReg.origin = { x: 0, y: 0 };
   return canvas;
 }
 

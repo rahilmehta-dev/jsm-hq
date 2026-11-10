@@ -16,6 +16,7 @@ import { drawEmote, drawFace, drawNameTag, drawSelection, drawShadow } from "./d
 import { buildStatic } from "./draw/static";
 import { Camera } from "./engine/camera";
 import { C } from "./engine/palette";
+import { labelReg } from "./engine/font";
 import { GfxPen } from "./engine/pen";
 import { canvasTexture } from "./engine/textures";
 import type { OfficeLayout, PxRect } from "./layout/layout";
@@ -35,6 +36,7 @@ export class OfficeScene {
   private gShadow = new Graphics();
   private gOver = new Graphics();
   camera!: Camera;
+  private labels!: LabelLayer;
 
   layout: OfficeLayout | null = null;
   belt!: BeltPath;
@@ -72,7 +74,9 @@ export class OfficeScene {
       () => ({ w: this.app.screen.width, h: this.app.screen.height }),
       () => ({ left: 312, top: 44, bottom: 16, right: useUi.getState().drawer ? 552 : 16 }),
       () => this.reducedMotion,
+      () => ({ left: 312, top: 44, bottom: 16, right: 16 }), // framing ignores the drawer: it slides over the map
     );
+    this.labels = new LabelLayer(host);
 
     const sync = () => {
       const { snap, epoch } = useOffice.getState();
@@ -98,6 +102,7 @@ export class OfficeScene {
   destroy() {
     this.destroyed = true;
     this.cleanups.forEach((fn) => fn());
+    this.labels?.destroy();
     if (this.app.renderer) this.app.destroy(true, { children: true });
   }
 
@@ -256,6 +261,7 @@ export class OfficeScene {
     const l = this.layout as OfficeLayout;
     const g = this.gFast;
     g.clear();
+    labelReg.dynamic = [];
     const p = new GfxPen(g);
 
     // plan wall
@@ -309,5 +315,71 @@ export class OfficeScene {
       return b ? { x: b.x, y: b.headY + 10 } : null;
     });
     if (this.hover) drawSelection(po, this.hover.rect, t);
+    this.updateLabels(snap, states);
+  }
+
+  /** Places the registered map labels on screen: fixed size, priority-culled. */
+  private updateLabels(snap: import("../data/types").OfficeSnapshot, states: Map<string, AgentState>) {
+    const byName = new Map(snap.config.team.map((a) => [a.name.toUpperCase().slice(0, 10), a]));
+    const all = [...labelReg.statics, ...labelReg.dynamic].map((lb) => {
+      const a = byName.get(lb.text) ?? byName.get(lb.text.slice(0, 8));
+      let prio = lb.prio;
+      if (a && lb.prio >= 1 && lb.prio <= 2) prio = states.get(a.id) === "needs-input" ? 0 : a.isLead ? 1 : 2;
+      const s = this.camera.worldToScreen(lb.x, lb.y);
+      return { ...lb, prio, sx: Math.round(s.x), sy: Math.round(s.y) };
+    });
+    this.labels.show(all, this.app.screen.width, this.app.screen.height);
+  }
+}
+
+interface PlacedLabel {
+  text: string;
+  accent?: string;
+  prio: number;
+  sx: number;
+  sy: number;
+}
+
+/**
+ * Fixed-size (12px) label plates over the canvas: solid white, 1px black outline, black text, 2px identity swatch.
+ * Higher-priority labels win when plates would overlap. Plain DOM, no pointer events.
+ */
+class LabelLayer {
+  private root = document.createElement("div");
+  private pool: HTMLDivElement[] = [];
+
+  constructor(host: HTMLElement) {
+    this.root.className = "map-labels";
+    this.root.setAttribute("aria-hidden", "true");
+    host.appendChild(this.root);
+  }
+
+  destroy() {
+    this.root.remove();
+  }
+
+  show(labels: PlacedLabel[], w: number, h: number) {
+    const sorted = labels.filter((l) => l.sx > -80 && l.sx < w + 80 && l.sy > -30 && l.sy < h + 30).sort((a, b) => a.prio - b.prio);
+    const taken: { x0: number; y0: number; x1: number; y1: number }[] = [];
+    let n = 0;
+    for (const l of sorted) {
+      const bw = Math.ceil(l.text.length * 7.6) + 16; // estimate of the plate's pixel size
+      const box = { x0: l.sx - bw / 2, x1: l.sx + bw / 2, y0: l.sy - 22, y1: l.sy };
+      if (taken.some((t) => box.x0 < t.x1 && box.x1 > t.x0 && box.y0 < t.y1 && box.y1 > t.y0)) continue;
+      taken.push(box);
+      let el = this.pool[n];
+      if (!el) {
+        el = document.createElement("div");
+        el.className = "map-plate";
+        this.root.appendChild(el);
+        this.pool[n] = el;
+      }
+      if (el.textContent !== l.text) el.textContent = l.text;
+      el.style.setProperty("--a", l.accent ?? "transparent");
+      el.style.transform = `translate(${Math.round(l.sx)}px, ${Math.round(l.sy)}px) translate(-50%, -100%)`;
+      el.style.display = "";
+      n += 1;
+    }
+    for (let i = n; i < this.pool.length; i++) this.pool[i].style.display = "none";
   }
 }
