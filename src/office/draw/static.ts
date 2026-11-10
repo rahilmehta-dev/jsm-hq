@@ -100,7 +100,7 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
     const off = (j % 3) * 16;
     p.rect(16, y, mainPx, 1, C.woodD);
     for (let x = 16 - off; x < mainPx; x += 48) {
-      p.rect(x + 1, y + 1, 47, 7, pick([C.wood, "#d6c6aa", "#e2d4ba", C.wood]));
+      p.rect(x + 1, y + 1, 47, 7, pick([C.wood, "#d6c6aa", "#ddd2bd", C.wood]));
       p.rect(x, y, 1, 8, C.woodLine);
       if (R() < 0.12) p.rect(x + 10 + Math.floor(R() * 28), y + 3, 2, 1, C.woodLine);
     }
@@ -140,7 +140,7 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
   for (let ty = 0; ty < 4; ty++) for (let tx = 0; tx * 8 < mainPx - L; tx++) p.rect(L + tx * 8, 64 + ty * 8, 8, 8, (tx + ty) % 2 ? C.tileD : C.tileL);
   p.rect(L + 16, 112, 96, 80, C.rugPD);
   p.rect(L + 18, 114, 92, 76, C.rugP);
-  for (let x = L + 20; x < L + 110; x += 4) p.rect(x, 116, 2, 72, "#836399");
+  for (let x = L + 20; x < L + 110; x += 4) p.rect(x, 116, 2, 72, "#b3b0a6");
   // stand-up rug
   ellipse(p, 88, 150, 42, 28, C.rugGD);
   ellipse(p, 88, 150, 39, 25, C.rugG);
@@ -205,7 +205,7 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
   // glass wall
   if (sr) {
     const gx = sr.glassX * 16;
-    p.rect(gx, 64, 16, bh - 80, "#a8d8ea", 0.42);
+    p.rect(gx, 64, 16, bh - 80, "#b9d0d9", 0.42);
     p.rect(gx, 64, 1, bh - 80, C.metalD);
     p.rect(gx + 15, 64, 1, bh - 80, C.metalD);
     for (let y = 64; y < bh - 16; y += 44) {
@@ -240,8 +240,8 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
   box(p, 180, 22, 22, 26, C.navy);
   p.rect(189, 27, 4, 9, C.white);
   p.rect(190, 26, 2, 1, C.red);
-  p.rect(190, 37, 2, 2, C.orange);
-  text(p, "SHIP", 184, 41, C.yellow);
+  p.rect(190, 37, 2, 2, C.metalD);
+  text(p, "SHIP", 184, 41, C.white);
   disc(p, L - 8, 36, 8, C.ink);
   disc(p, L - 8, 36, 7, C.white);
   box(p, L + 63, 19, 66, 34, C.white);
@@ -295,7 +295,7 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
   p.rect(L + 52, 52, 3, 3, C.red);
   const right = mainPx - 16;
   box(p, right + 1, 48, 12, 26, C.white);
-  box(p, right + 2, 36, 10, 13, "#7fd0f2");
+  box(p, right + 2, 36, 10, 13, "#bcd3dc");
   p.rect(L + 32, 140, 66, 3, C.shadow, 0.25);
   box(p, L + 30, 120, 68, 10, C.couchD);
   box(p, L + 32, 128, 64, 12, C.couch);
@@ -304,11 +304,11 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
   p.rect(L + 34, 129, 60, 1, "#5aa0ae");
   box(p, L + 50, 162, 28, 9, C.desk);
   box(p, L + 57, 160, 5, 5, C.white);
-  box(p, right + 1, 100, 14, 34, "#5b3a8e");
-  p.rect(right + 2, 101, 12, 5, C.yellow);
+  box(p, right + 1, 100, 14, 34, "#5f6670");
+  p.rect(right + 2, 101, 12, 5, C.wall);
   text(p, "GO", right + 4, 101, C.ink);
   box(p, right + 3, 107, 10, 9, C.ink);
-  box(p, right + 2, 118, 12, 4, "#7a55b0");
+  box(p, right + 2, 118, 12, 4, "#7b838d");
   plant(p, L - 8, 76);
   plant(p, right + 8, 204, false);
 
@@ -339,7 +339,7 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
         }
       } else if (s.kind === "writer") {
         box(p, dx + 54, dy + 6, 22, 20, "#2b3a4a");
-        p.rect(dx + 58, dy + 10, 14, 12, "#3fe0c4");
+        p.rect(dx + 58, dy + 10, 14, 12, "#9fc4bd");
         text(p, "AI", dx + 61, dy + 12, C.ink);
       } else if (s.kind === "sender") {
         box(p, dx + 54, dy + 4, 22, 22, "#5f6b80");
@@ -349,7 +349,7 @@ export function buildStatic(l: OfficeLayout, config: HqConfig): HTMLCanvasElemen
       } else {
         box(p, dx + 54, dy + 8, 20, 18, C.metal);
         disc(p, dx + 64, dy + 17, 5, C.metalD);
-        disc(p, dx + 64, dy + 17, 2, C.yellow);
+        disc(p, dx + 64, dy + 17, 2, C.white);
       }
     }
     const ib = pv.inbox;

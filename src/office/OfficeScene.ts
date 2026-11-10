@@ -67,6 +67,7 @@ export class OfficeScene {
     if (this.destroyed) return void this.app.destroy(true);
     host.appendChild(this.app.canvas);
     this.app.canvas.style.imageRendering = "pixelated";
+    this.app.canvas.style.display = "block"; // an inline canvas leaves a baseline gap under it
     this.world.addChild(this.gSlow, this.gFast, this.gShadow, this.actors, this.gOver);
     this.app.stage.addChild(this.world);
     this.camera = new Camera(
