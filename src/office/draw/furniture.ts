@@ -1,6 +1,6 @@
 // Furniture and decor drawn once into the static layer.
 
-import { PLATE, text, textW } from "../engine/font";
+import { labelReg, text, textW } from "../engine/font";
 import { C } from "../engine/palette";
 import { box, disc, ellipse, type Pen } from "../engine/pen";
 
@@ -43,10 +43,8 @@ export function monitorFrame(p: Pen, mx: number, my: number) {
   p.rect(mx + 6, my + 18, 10, 1, C.metalDD);
 }
 
-export function plate(p: Pen, label: string, cx: number, y: number) {
-  const w = textW(label);
-  box(p, Math.round(cx - w / 2) - 3, y, w + 6, 8, PLATE.fill, PLATE.line);
-  text(p, label, Math.round(cx - w / 2), y + 1, PLATE.ink);
+export function plate(_p: Pen, label: string, cx: number, y: number, prio = 2) {
+  labelReg.addStatic(label, cx, y, prio);
 }
 
 /** Desk with a monitor, keyboard and mug. `dx, dy` = top-left of the desk area. */
@@ -143,8 +141,7 @@ export function pavilionShell(p: Pen, x: number, y: number, w: number, h: number
   p.rect(x, y + 16, w, h - 16, "#ece8e0"); // floor
   p.rect(x, y, w, 16, C.sage); // sign band
   p.rect(x, y + 15, w, 1, C.sageL);
-  const text1 = label.toUpperCase().slice(0, Math.max(4, Math.floor((w - 8) / 6)));
-  text(p, text1, Math.round(x + w / 2 - textW(text1) / 2), y + 5, "#ffffff");
+  labelReg.addStatic(label.toUpperCase(), x + w / 2, y + 10, 3);
   p.rect(x, y + 16, w, 32, C.glass, 0.9); // glass front
   for (let gx = x; gx < x + w; gx += 24) p.rect(gx, y + 16, 2, 32, C.metalL);
   p.rect(x, y + 47, w, 2, C.metalD);

@@ -44,6 +44,8 @@ export class Camera {
     private viewport: () => { w: number; h: number },
     private insets: () => Insets,
     private reducedMotion: () => boolean,
+    /** Insets used only to pick the framing zoom. Overlays that slide over the map (drawers) are left out, so opening one never shrinks the campus. */
+    private fitInsets: () => Insets = insets,
   ) {}
 
   /** Sets the campus size; returns true if it changed. */
@@ -57,7 +59,7 @@ export class Camera {
   /** The zoom that shows the whole campus (its lawn margin may be cropped by PAD) in the free area, on a crisp step. */
   private fitRaw(): number {
     const { w, h } = this.viewport();
-    const i = this.insets();
+    const i = this.fitInsets();
     const fw = Math.max(100, w - i.left - i.right);
     const fh = Math.max(100, h - i.top - i.bottom);
     const cw = Math.max(1, this.worldW - PAD * 2);

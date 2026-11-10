@@ -1,7 +1,7 @@
 // 3×5 bitmap font for in-world signs and tags.
 
 import { C } from "./palette";
-import { box, type Pen } from "./pen";
+import type { Pen } from "./pen";
 
 const FONT: Record<string, string[]> = {
   A: [".#.", "#.#", "###", "#.#", "#.#"], B: ["##.", "#.#", "##.", "#.#", "##."], C: [".##", "#..", "#..", "#..", ".##"], D: ["##.", "#.#", "#.#", "#.#", "##."],
@@ -56,15 +56,35 @@ export const PLATE = { fill: "#ffffff", line: "#000000", ink: "#000000" } as con
  * `accent` (an agent or status colour) shows as a 2px swatch on the plate's left edge, so identity
  * survives without ever being the text colour. `_legacyBg` is ignored (kept so existing callers compile): no coloured plates.
  */
-export function tag(p: Pen, str: string, cx: number, y: number, _legacyBg?: string, accent?: string) {
-  const w = textW(str);
+export function tag(_p: Pen, str: string, cx: number, y: number, _legacyBg?: string, accent?: string) {
   if (accent === C.white) accent = undefined;
-  const sw = accent ? 3 : 0;
-  const x = Math.round(cx - (w + sw) / 2) + sw;
-  box(p, x - 3 - sw, y - 2, w + 6 + sw, 9, PLATE.fill, PLATE.line);
-  if (accent) p.rect(x - 2 - sw, y - 1, 2, 7, accent);
-  text(p, str, x, y, PLATE.ink);
+  labelReg.dynamic.push({ text: str, x: cx, y, accent, prio: accent ? 2 : 4 });
 }
+
+/**
+ * Screen-space map labels. Drawing code no longer paints name plates into the (camera-scaled) pixel art;
+ * it registers them here with world coordinates, and OfficeScene draws them as fixed 12px DOM plates
+ * (see `.map-plate` in index.css) so they stay legible at any zoom.
+ * `y` is the plate's top edge in world px; `prio`: 0 needs-input, 1 lead, 2 agent names, 3 room signs, 4 everything else.
+ */
+export interface MapLabel {
+  text: string;
+  x: number;
+  y: number;
+  accent?: string;
+  prio: number;
+}
+export const labelReg = {
+  /** Offset of the layer currently being drawn (the static layer translates by the building origin). */
+  origin: { x: 0, y: 0 },
+  /** Labels baked with the static layer; replaced whenever it is rebuilt. */
+  statics: [] as MapLabel[],
+  /** Labels emitted this frame by live drawing code; the scene clears it before drawing. */
+  dynamic: [] as MapLabel[],
+  addStatic(text: string, x: number, y: number, prio: number, accent?: string) {
+    this.statics.push({ text, x: x + this.origin.x, y: y + this.origin.y, prio, accent });
+  },
+};
 
 /** Clips a label to fit `maxPx` wide. */
 export function fit(str: string, maxPx: number): string {
